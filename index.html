@@ -162,8 +162,12 @@ function overview() {
       <input readonly id="lnk" value="${esc(guestLink())}"><div class="row m"><button class="g" id="cp">Copy link</button><a href="${esc(guestLink())}" target="_blank" rel="noopener"><button class="g" type="button">Open</button></a>
       ${e.sheetUrl ? `<a href="${esc(e.sheetUrl)}" target="_blank" rel="noopener"><button class="g" type="button">Google Sheet</button></a>` : ""}
       ${e.folderUrl ? `<a href="${esc(e.folderUrl)}" target="_blank" rel="noopener"><button class="g" type="button">Drive folder</button></a>` : ""}</div></div>
+    <div class="card"><h2>Bride &amp; groom's page</h2><p class="small muted">A private page for the couple: who accepted, who declined, who hasn't replied, and every photo and video guests sent. Read-only. Send them this link; anyone with it can view.</p>
+      <input readonly id="vlnk" value="${esc(S.appUrl + "?view=" + (e.viewKey || ""))}"><div class="row m"><button class="g" id="vcp">Copy link</button><a href="${esc(S.appUrl + "?view=" + (e.viewKey || ""))}" target="_blank" rel="noopener"><button class="g" type="button">Open</button></a></div></div>
     <div class="card"><h2>Manage</h2><div class="row"><button class="g" id="dup">Duplicate</button><button class="g" id="rst">Reset…</button><button class="r" id="rm">Remove</button></div><p class="msg" id="m"></p></div>`;
   $("#lnk").onclick = () => $("#lnk").select();
+  $("#vlnk").onclick = () => $("#vlnk").select();
+  $("#vcp").onclick = async () => { try { await navigator.clipboard.writeText($("#vlnk").value); $("#vcp").textContent = "Copied ✓"; } catch (x) { $("#vlnk").select(); } };
   $("#cp").onclick = async () => { try { await navigator.clipboard.writeText(guestLink()); $("#cp").textContent = "Copied ✓"; } catch (x) { $("#lnk").select(); } };
   $("#dup").onclick = () => modal(`<h2>Duplicate “${esc(e.name)}”</h2><p class="small muted">Same look and settings, with a new sheet, Drive folder and empty replies.</p>
     <label>New event name</label><input id="dn" value="${esc(e.name + " (copy)")}"><label style="margin-top:8px">New invitation code</label><input id="dc" placeholder="E9002">
@@ -205,6 +209,8 @@ function look() {
 // ----- details -----
 function details() {
   const E = S.E, cf = E.cfg, cl = cf.location || {}, cc = cf.couple || {}, d = S.defaults, dl = d.location || {}, dc = d.couple || {};
+  const rs = d.rsvp || {}, me = d.memories || {}, cr = cf.rsvp || {}, cm = cf.memories || {};
+  const t = (k, label, val, ph) => `<div class="w"><label>${label}</label><textarea data-k="${k}" style="min-height:64px" placeholder="${esc(ph || "")}">${esc(val)}</textarea></div>`;
   const f = (k, label, val, ph, cls) => `<div class="${cls || ""}"><label>${label}</label><input data-k="${k}" value="${esc(val)}" placeholder="${esc(ph || "")}"></div>`;
   $("#pane").innerHTML = `<div class="card"><h2>Event</h2><div class="grid">${f("name", "Event name", E.name)}${f("code", "Invitation code", E.code, "E9001")}${f("limit", "Uploads per guest (0 = unlimited)", E.limit)}</div></div>
     <div class="card"><h2>Names, date & venue</h2><p class="small muted">Leave a box empty to use the default shown in grey.</p><div class="grid">
@@ -214,6 +220,17 @@ function details() {
     ${f("cfg.location.venue", "Venue", cl.venue, dl.venue)}${f("cfg.location.address", "Address", cl.address, dl.address)}
     ${f("cfg.location.time", "Time", cl.time, dl.time)}${f("cfg.location.dress", "Dress code", cl.dress, dl.dress)}
     ${f("cfg.location.mapUrl", "Map link", cl.mapUrl, dl.mapUrl, "w")}</div></div>
+    <div class="card"><h2>Wording</h2><p class="small muted">The words guests read. Leave a box empty to keep the default shown in grey. In the thank-you messages, <b>{first}</b> becomes the guest's first name.</p><div class="grid">
+    ${f("cfg.eyebrow", "Small line above the title", cf.eyebrow, d.eyebrow)}${f("cfg.title", "Big title", cf.title, d.title)}
+    ${f("cfg.hint", "Hint under the chalk (scratch)", cf.hint, d.hint, "w")}${f("cfg.proceedLabel", "Button after the entrance", cf.proceedLabel, d.proceedLabel, "w")}
+    ${f("cfg.rsvp.eyebrow", "RSVP page: small line", cr.eyebrow, rs.eyebrow, "w")}
+    ${t("cfg.rsvp.heading", "RSVP page: welcome text", cr.heading, rs.heading)}${f("cfg.rsvp.deadline", "Reply-by line", cr.deadline, rs.deadline, "w")}
+    ${f("cfg.rsvp.acceptLabel", "Accept button", cr.acceptLabel, rs.acceptLabel)}${f("cfg.rsvp.declineLabel", "Decline button", cr.declineLabel, rs.declineLabel)}
+    ${t("cfg.rsvp.thanksYes", "Thank-you message: accepted", cr.thanksYes, rs.thanksYes)}${t("cfg.rsvp.thanksNo", "Thank-you message: declined", cr.thanksNo, rs.thanksNo)}
+    ${f("cfg.location.label", "Venue box heading", cl.label, dl.label, "w")}
+    ${f("cfg.memories.title", "Photo page title", cm.title, me.title)}${f("cfg.memories.nextLabel", "Button to the photo page", cm.nextLabel, me.nextLabel)}
+    ${t("cfg.memories.intro", "Photo page intro", cm.intro, me.intro)}${t("cfg.memories.qrLabel", "Invite-others text (under the QR code)", cm.qrLabel, me.qrLabel)}
+    ${t("cfg.memories.thanks", "After a photo is sent", cm.thanks, me.thanks)}</div></div>
     <div class="card"><h2>Pictures from your Drive</h2><p class="small muted">Paste a Drive file link (max 3 MB each). Empty = default pictures.</p><div class="grid">
     ${f("photoId", "Couple photo", E.photoId, "", "w")}${f("coverId", "Scratch cover image", E.coverId, "", "w")}</div></div>
     <div class="sticky"><button id="sv">Save</button><p class="msg" id="m"></p></div>`;
