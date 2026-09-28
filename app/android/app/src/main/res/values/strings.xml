@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Invitation Admin</string>
+    <string name="title_activity_main">Invitation Admin</string>
+    <string name="package_name">studio.theyes.invitationadmin</string>
+    <string name="custom_url_scheme">studio.theyes.invitationadmin</string>
+</resources>

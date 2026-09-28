@@ -1,0 +1,39 @@
+{
+  "name": "invitation-admin",
+  "productName": "Invitation Admin",
+  "version": "1.0.0",
+  "description": "Admin for the wedding invitation site",
+  "main": "main.js",
+  "author": "The Yes Creative Studio",
+  "scripts": {
+    "sync": "node sync.js",
+    "start": "npm run sync && electron .",
+    "build:exe": "npm run sync && electron-builder --win portable",
+    "build:apk": "npm run sync && npx cap sync android && cd android && gradlew.bat assembleDebug"
+  },
+  "build": {
+    "appId": "studio.theyes.invitationadmin",
+    "productName": "Invitation Admin",
+    "files": [
+      "main.js",
+      "www/**/*"
+    ],
+    "win": {
+      "target": "portable",
+      "icon": "www/icon-512.png",
+      "artifactName": "Invitation-Admin.exe"
+    },
+    "directories": {
+      "output": "dist"
+    }
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.2",
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/core": "^8.5.2"
+  }
+}

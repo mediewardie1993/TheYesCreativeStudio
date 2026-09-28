@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#b8434f">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Invitation Admin</title>
+<style>
+  :root { --bg:#f6f2ee; --card:#fff; --ink:#2b2226; --muted:#7a6a6e; --line:#e6dcd6; --brand:#b8434f; --brand2:#d9616f; --ok:#2c7a3f; --err:#a3262f; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { font: 15px/1.45 system-ui, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--ink); padding-bottom: env(safe-area-inset-bottom); }
+  header.top { position: sticky; top: 0; z-index: 5; background: var(--brand); color: #fff; padding: max(10px, env(safe-area-inset-top)) 14px 10px; display: flex; align-items: center; gap: 10px; }
+  header.top h1 { font-size: 17px; margin: 0; flex: 1; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  header.top button { background: rgba(255,255,255,.18); color: #fff; }
+  main { max-width: 860px; margin: 0 auto; padding: 14px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+  h2 { font-size: 16px; margin: 0 0 8px; }
+  .muted { color: var(--muted); } .small { font-size: 13px; }
+  label { display: block; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 3px; }
+  input, select, textarea { width: 100%; font: inherit; padding: 9px 10px; border: 1px solid #d8ccc5; border-radius: 9px; background: #fff; color: var(--ink); }
+  textarea { min-height: 120px; }
+  button { font: inherit; font-weight: 600; padding: 9px 14px; border: 0; border-radius: 9px; background: var(--brand); color: #fff; cursor: pointer; }
+  button.g { background: #efe6e1; color: #3a2a2e; } button.r { background: #8a1f2b; } button:disabled { opacity: .5; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; } .row.m { margin-top: 12px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } .grid .w { grid-column: 1 / -1; }
+  @media (max-width: 520px) { .grid { grid-template-columns: 1fr; } }
+  .msg { min-height: 20px; font-size: 14px; margin-top: 8px; } .msg.err { color: var(--err); } .msg.ok { color: var(--ok); }
+  .ev { cursor: pointer; display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+  .ev b { font-size: 16px; } .chip { display: inline-block; font-size: 12px; padding: 2px 9px; border-radius: 999px; background: #f3e9e4; color: #5a4a4e; margin-right: 4px; }
+  .tabs { display: flex; gap: 6px; overflow-x: auto; margin: 0 0 12px; padding-bottom: 2px; }
+  .tabs button { background: #efe6e1; color: #3a2a2e; white-space: nowrap; } .tabs button.on { background: var(--brand); color: #fff; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+  .stat { background: #faf6f3; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; } .stat b { display: block; font-size: 24px; line-height: 1.1; } .stat span { font-size: 12px; color: var(--muted); }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+  .tile { border: 2px solid var(--line); border-radius: 12px; padding: 12px 8px; text-align: center; background: #fff; cursor: pointer; font-weight: 600; color: var(--ink); }
+  .tile.on { border-color: var(--brand); background: #fdeff0; } .tile i { display: block; font-style: normal; font-size: 28px; margin-bottom: 4px; }
+  .sw { display: flex; height: 26px; border-radius: 7px; overflow: hidden; margin-bottom: 6px; } .sw span { flex: 1; }
+  table { width: 100%; border-collapse: collapse; } th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); } tr.click { cursor: pointer; } tr.click:hover { background: #faf6f3; }
+  .tag { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; } .tag.yes { background: #dff3e4; color: #1d6a34; } .tag.no { background: #f8dfe1; color: #8a1f2b; } .tag.wait { background: #f1ece8; color: #6b5b5f; }
+  .gal { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; } .gal a { position: relative; display: block; aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: #e9dfda; }
+  .gal img { width: 100%; height: 100%; object-fit: cover; } .gal em { position: absolute; left: 4px; bottom: 4px; background: rgba(0,0,0,.55); color: #fff; font-size: 11px; font-style: normal; padding: 1px 6px; border-radius: 6px; }
+  .modal { position: fixed; inset: 0; background: rgba(30,15,18,.55); display: flex; align-items: center; justify-content: center; padding: 14px; z-index: 20; }
+  .modal .card { width: 100%; max-width: 440px; max-height: 92vh; overflow: auto; margin: 0; } .modal.wide .card { max-width: 420px; padding: 0; overflow: hidden; }
+  .modal iframe { width: 100%; height: min(78vh, 760px); border: 0; display: block; }
+  .chk { display: flex; gap: 8px; align-items: flex-start; margin: 8px 0; font-size: 14px; } .chk input { width: auto; margin-top: 3px; }
+  .sticky { position: sticky; bottom: 0; background: linear-gradient(transparent, var(--bg) 30%); padding: 14px 0 6px; }
+</style>
+</head>
+<body>
+<header class="top"><h1 id="title">Invitation Admin</h1><span id="hbtn"></span></header>
+<main id="app"></main>
+<div id="modal"></div>
+
+<script>
+"use strict";
+const OPENINGS = [["scratch","✏️","Scratch the chalk"],["envelope","✉️","Open the envelope"],["veil","👰","Lift the veil"],["ring","💍","Ring on the finger"],["knot","🎀","Untie the knot"],["curtains","🎭","Open the curtains"]];
+const SCHEMES = [["blush","Blush rose",["#fdeef0","#d9616f","#b8434f"]],["burgundy","Burgundy",["#f6e9e6","#9b2c3f","#741c2e"]],["sage","Sage garden",["#eef2e8","#6f8f6a","#4d6b49"]],["navy","Navy & gold",["#e9edf5","#b48a3c","#16233d"]],["lavender","Lavender",["#f1ecf7","#8a6cb5","#64468f"]],["champagne","Champagne",["#f7efe0","#b8925a","#8c6a36"]]];
+const $ = (s, r) => (r || document).querySelector(s);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const S = { url: "", pin: "", events: [], defaults: {}, appUrl: "", id: null, E: null, tab: "overview", guests: null, gal: null, q: "", flt: "all" };
+
+// ---------- talking to the Apps Script backend ----------
+async function api(fn, ...args) {
+  const r = await fetch(S.url, { method: "POST", body: JSON.stringify({ fn, args: [S.pin, ...args] }) });
+  let j; try { j = await r.json(); } catch (e) { throw new Error("The server did not answer properly. Check the web app link and that it is deployed."); }
+  if (!j.ok) throw new Error(j.error || "Something went wrong.");
+  return j.data;
+}
+const say = (el, t, ok) => { el.className = "msg " + (ok ? "ok" : "err"); el.textContent = t || ""; };
+
+// ---------- modal ----------
+function modal(html, wire, wide) {
+  $("#modal").innerHTML = '<div class="modal' + (wide ? " wide" : "") + '"><div class="card">' + html + "</div></div>";
+  $("#modal .modal").addEventListener("click", e => { if (e.target.classList.contains("modal")) closeModal(); });
+  if (wire) wire($("#modal"));
+}
+const closeModal = () => { $("#modal").innerHTML = ""; };
+
+// ---------- login ----------
+function login(msg) {
+  S.pin = ""; $("#title").textContent = "Invitation Admin"; $("#hbtn").innerHTML = "";
+  let saved = {}; try { saved = JSON.parse(localStorage.getItem("adm") || "{}"); } catch (e) {}
+  $("#app").innerHTML = `<div class="card"><h2>Sign in</h2>
+    <p class="muted small">Paste your Apps Script web app link (ends in /exec) and your admin PIN.</p>
+    <label>Web app link</label><input id="u" placeholder="https://script.google.com/macros/s/…/exec" value="${esc(saved.url || "")}" autocapitalize="off" autocomplete="off">
+    <label style="margin-top:10px">Admin PIN</label><input id="p" type="password" autocomplete="current-password" value="${esc(saved.pin || "")}">
+    <div class="chk"><input type="checkbox" id="rem" ${saved.pin ? "checked" : ""}><span>Keep me signed in on this device</span></div>
+    <div class="row m"><button id="go">Sign in</button></div><p class="msg err" id="m">${esc(msg || "")}</p></div>`;
+  const go = async () => {
+    S.url = $("#u").value.trim(); S.pin = $("#p").value;
+    if (!/^https:\/\/script\.google\.com\/.+\/exec/.test(S.url)) return say($("#m"), "That doesn't look like a web app link ending in /exec.");
+    $("#go").disabled = true; say($("#m"), "Signing in…", true);
+    try {
+      await loadAll();
+      try { localStorage.setItem("adm", JSON.stringify({ url: S.url, pin: $("#rem").checked ? S.pin : "" })); } catch (e) {}
+      home();
+    } catch (e) { $("#go").disabled = false; say($("#m"), e.message); }
+  };
+  $("#go").onclick = go; $("#p").onkeydown = e => { if (e.key === "Enter") go(); };
+}
+async function loadAll() {
+  const r = await api("admin_list");
+  S.events = r.events; S.defaults = r.defaults; S.appUrl = r.appUrl || S.url;
+}
+
+// ---------- home ----------
+function home() {
+  S.id = null; S.E = null; S.guests = null; S.gal = null;
+  $("#title").textContent = "Your events";
+  $("#hbtn").innerHTML = '<button id="out">Sign out</button>';
+  $("#out").onclick = () => { try { localStorage.setItem("adm", JSON.stringify({ url: S.url, pin: "" })); } catch (e) {} login(); };
+  $("#app").innerHTML = S.events.map(e => `<div class="card ev" data-id="${esc(e.id)}"><div><b>${esc(e.name)}</b><div class="small muted">Code ${esc(e.code)} · ${e.guests} invitations · ${e.replied} replied · ${e.uploads} moments</div>
+    <div style="margin-top:6px"><span class="chip">${esc((OPENINGS.find(o => o[0] === e.opening) || ["", "", e.opening])[2])}</span><span class="chip">${esc((SCHEMES.find(o => o[0] === e.scheme) || ["", e.scheme])[1])}</span></div></div><span class="muted">›</span></div>`).join("")
+    + '<div class="row"><button id="new">+ New event</button></div><p class="msg" id="m"></p>';
+  document.querySelectorAll(".ev").forEach(c => c.onclick = () => openEvent(c.dataset.id));
+  $("#new").onclick = async () => {
+    const code = "E" + Math.floor(1000 + Math.random() * 9000);
+    try { await api("admin_save", { name: "New event", code, opening: "scratch", scheme: "blush", limit: 3, cfg: {} }); await loadAll(); home(); }
+    catch (e) { say($("#m"), e.message); }
+  };
+}
+
+// ---------- event ----------
+function openEvent(id, tab) {
+  S.id = id; S.E = JSON.parse(JSON.stringify(S.events.find(e => e.id === id))); S.E.cfg = S.E.cfg || {};
+  S.tab = tab || "overview"; S.guests = null; S.gal = null; drawEvent();
+}
+function drawEvent() {
+  $("#title").textContent = S.E.name;
+  $("#hbtn").innerHTML = '<button id="back">← Events</button>';
+  $("#back").onclick = () => home();
+  const tabs = [["overview", "Overview"], ["guests", "Guests"], ["look", "Look"], ["details", "Details"], ["gallery", "Gallery"]];
+  $("#app").innerHTML = '<div class="tabs">' + tabs.map(t => `<button data-t="${t[0]}" class="${S.tab === t[0] ? "on" : ""}">${t[1]}</button>`).join("") + '</div><div id="pane"></div>';
+  document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { S.tab = b.dataset.t; drawEvent(); });
+  ({ overview, guests, look, details, gallery })[S.tab]();
+}
+const cur = () => S.events.find(e => e.id === S.id);
+const guestLink = () => S.appUrl + "?code=" + encodeURIComponent(S.E.code);
+
+async function saveEvent(btn, msgEl) {
+  btn.disabled = true; say(msgEl, "Saving…", true);
+  try {
+    const d = S.E;
+    await api("admin_save", { id: S.id, name: d.name, code: d.code, opening: d.opening, scheme: d.scheme, limit: d.limit, cfg: d.cfg, photoId: d.photoId, coverId: d.coverId });
+    await loadAll(); S.E = JSON.parse(JSON.stringify(cur())); $("#title").textContent = S.E.name;
+    say(msgEl, "Saved.", true); btn.disabled = false; return true;
+  } catch (e) { say(msgEl, e.message); btn.disabled = false; return false; }
+}
+
+// ----- overview -----
+function overview() {
+  const e = cur();
+  $("#pane").innerHTML = `<div class="card"><h2>${esc(e.name)}</h2><div class="stats" id="st"><div class="stat"><b>${e.guests}</b><span>invitations</span></div><div class="stat"><b>${e.replied}</b><span>replied</span></div><div class="stat"><b>${e.uploads}</b><span>shared moments</span></div></div>
+    <p class="small muted" style="margin:10px 0 0">Open the Guests tab for attending / declined / pending totals.</p></div>
+    <div class="card"><h2>Guest link</h2><p class="small muted">Guests need the code <b>${esc(e.code)}</b>. This link fills it in for them.</p>
+      <input readonly id="lnk" value="${esc(guestLink())}"><div class="row m"><button class="g" id="cp">Copy link</button><a href="${esc(guestLink())}" target="_blank" rel="noopener"><button class="g" type="button">Open</button></a>
+      ${e.sheetUrl ? `<a href="${esc(e.sheetUrl)}" target="_blank" rel="noopener"><button class="g" type="button">Google Sheet</button></a>` : ""}
+      ${e.folderUrl ? `<a href="${esc(e.folderUrl)}" target="_blank" rel="noopener"><button class="g" type="button">Drive folder</button></a>` : ""}</div></div>
+    <div class="card"><h2>Manage</h2><div class="row"><button class="g" id="dup">Duplicate</button><button class="g" id="rst">Reset…</button><button class="r" id="rm">Remove</button></div><p class="msg" id="m"></p></div>`;
+  $("#lnk").onclick = () => $("#lnk").select();
+  $("#cp").onclick = async () => { try { await navigator.clipboard.writeText(guestLink()); $("#cp").textContent = "Copied ✓"; } catch (x) { $("#lnk").select(); } };
+  $("#dup").onclick = () => modal(`<h2>Duplicate “${esc(e.name)}”</h2><p class="small muted">Same look and settings, with a new sheet, Drive folder and empty replies.</p>
+    <label>New event name</label><input id="dn" value="${esc(e.name + " (copy)")}"><label style="margin-top:8px">New invitation code</label><input id="dc" placeholder="E9002">
+    <div class="chk"><input type="checkbox" id="dg" checked><span>Also copy the guest list (replies are always cleared)</span></div>
+    <p class="msg err" id="mm"></p><div class="row m"><button id="ok">Duplicate</button><button class="g" id="no">Cancel</button></div>`, m => {
+    $("#no", m).onclick = closeModal;
+    $("#ok", m).onclick = async () => { $("#ok", m).disabled = true; try { const id = await api("admin_duplicate", e.id, $("#dn", m).value, $("#dc", m).value, $("#dg", m).checked); await loadAll(); closeModal(); openEvent(id); } catch (x) { $("#ok", m).disabled = false; say($("#mm", m), x.message); } };
+  });
+  $("#rst").onclick = () => modal(`<h2>Reset this event</h2><p class="small muted">Photos and videos already in your Drive are never deleted.</p>
+    <div class="chk"><input type="checkbox" id="r1" checked><span>Clear all RSVP replies</span></div>
+    <div class="chk"><input type="checkbox" id="r2" checked><span>Give every guest their uploads back</span></div>
+    <div class="chk"><input type="checkbox" id="r3"><span>Empty the guests' gallery (files stay in Drive)</span></div>
+    <p class="msg err" id="mm"></p><div class="row m"><button class="r" id="ok">Reset</button><button class="g" id="no">Cancel</button></div>`, m => {
+    $("#no", m).onclick = closeModal;
+    $("#ok", m).onclick = async () => { $("#ok", m).disabled = true; try { await api("admin_reset", e.id, { responses: $("#r1", m).checked, uploads: $("#r2", m).checked, gallery: $("#r3", m).checked }); await loadAll(); closeModal(); S.guests = null; S.gal = null; drawEvent(); } catch (x) { $("#ok", m).disabled = false; say($("#mm", m), x.message); } };
+  });
+  $("#rm").onclick = () => modal(`<h2>Remove this event?</h2><p class="small muted">It disappears from the list and its code stops working. The Google Sheet and Drive folder are not deleted.</p>
+    <p class="msg err" id="mm"></p><div class="row m"><button class="r" id="ok">Remove</button><button class="g" id="no">Cancel</button></div>`, m => {
+    $("#no", m).onclick = closeModal;
+    $("#ok", m).onclick = async () => { try { await api("admin_remove", e.id); await loadAll(); closeModal(); home(); } catch (x) { say($("#mm", m), x.message); } };
+  });
+}
+
+// ----- look (entrance + theme) -----
+function look() {
+  const E = S.E;
+  $("#pane").innerHTML = `<div class="card"><h2>Entrance</h2><p class="small muted">How the invitation opens for your guests.</p><div class="tiles" id="op">${OPENINGS.map(o => `<button type="button" class="tile ${E.opening === o[0] ? "on" : ""}" data-v="${o[0]}"><i>${o[1]}</i>${o[2]}</button>`).join("")}</div></div>
+    <div class="card"><h2>Colour theme</h2><div class="tiles" id="sc">${SCHEMES.map(s => `<button type="button" class="tile ${E.scheme === s[0] ? "on" : ""}" data-v="${s[0]}"><div class="sw">${s[2].map(c => `<span style="background:${c}"></span>`).join("")}</div>${s[1]}</button>`).join("")}</div></div>
+    <div class="sticky"><div class="row"><button id="sv">Save</button><button class="g" id="pv">Save &amp; preview</button></div><p class="msg" id="m"></p></div>`;
+  const pick = (id, key) => document.querySelectorAll("#" + id + " .tile").forEach(t => t.onclick = () => { E[key] = t.dataset.v; document.querySelectorAll("#" + id + " .tile").forEach(x => x.classList.toggle("on", x === t)); });
+  pick("op", "opening"); pick("sc", "scheme");
+  $("#sv").onclick = () => saveEvent($("#sv"), $("#m"));
+  $("#pv").onclick = async () => {
+    if (!(await saveEvent($("#pv"), $("#m")))) return;
+    modal(`<iframe src="${esc(guestLink())}" title="Preview"></iframe><div class="row" style="padding:10px"><button class="g" id="no">Close preview</button><span class="small muted">Live preview of what guests see.</span></div>`, m => { $("#no", m).onclick = closeModal; }, true);
+  };
+}
+
+// ----- details -----
+function details() {
+  const E = S.E, cf = E.cfg, cl = cf.location || {}, cc = cf.couple || {}, d = S.defaults, dl = d.location || {}, dc = d.couple || {};
+  const f = (k, label, val, ph, cls) => `<div class="${cls || ""}"><label>${label}</label><input data-k="${k}" value="${esc(val)}" placeholder="${esc(ph || "")}"></div>`;
+  $("#pane").innerHTML = `<div class="card"><h2>Event</h2><div class="grid">${f("name", "Event name", E.name)}${f("code", "Invitation code", E.code, "E9001")}${f("limit", "Uploads per guest (0 = unlimited)", E.limit)}</div></div>
+    <div class="card"><h2>Names, date & venue</h2><p class="small muted">Leave a box empty to use the default shown in grey.</p><div class="grid">
+    ${f("cfg.couple.one", "Partner 1", cc.one, dc.one)}${f("cfg.couple.two", "Partner 2", cc.two, dc.two)}
+    ${f("cfg.dateLine", "Date line", cf.dateLine, d.dateLine, "w")}${f("cfg.place", "Place", cf.place, d.place, "w")}
+    ${f("cfg.chalkMessage", "Chalk message (scratch entrance)", cf.chalkMessage, d.chalkMessage, "w")}
+    ${f("cfg.location.venue", "Venue", cl.venue, dl.venue)}${f("cfg.location.address", "Address", cl.address, dl.address)}
+    ${f("cfg.location.time", "Time", cl.time, dl.time)}${f("cfg.location.dress", "Dress code", cl.dress, dl.dress)}
+    ${f("cfg.location.mapUrl", "Map link", cl.mapUrl, dl.mapUrl, "w")}</div></div>
+    <div class="card"><h2>Pictures from your Drive</h2><p class="small muted">Paste a Drive file link (max 3 MB each). Empty = default pictures.</p><div class="grid">
+    ${f("photoId", "Couple photo", E.photoId, "", "w")}${f("coverId", "Scratch cover image", E.coverId, "", "w")}</div></div>
+    <div class="sticky"><button id="sv">Save</button><p class="msg" id="m"></p></div>`;
+  document.querySelectorAll("#pane [data-k]").forEach(i => i.oninput = () => {
+    const ks = i.dataset.k.split("."); let t = E; for (let n = 0; n < ks.length - 1; n++) { t[ks[n]] = t[ks[n]] || {}; t = t[ks[n]]; } t[ks[ks.length - 1]] = i.value;
+  });
+  $("#sv").onclick = () => saveEvent($("#sv"), $("#m"));
+}
+
+// ----- guests -----
+async function guests() {
+  $("#pane").innerHTML = '<p class="muted">Loading guests…</p>';
+  try { if (!S.guests) S.guests = await api("admin_guests", S.id); } catch (e) { $("#pane").innerHTML = `<p class="msg err">${esc(e.message)}</p>`; return; }
+  drawGuests();
+}
+function drawGuests() {
+  const G = S.guests, yes = G.filter(g => g.rsvp === "Attending"), no = G.filter(g => g.rsvp === "Declined"), wait = G.filter(g => !g.rsvp);
+  const head = yes.reduce((a, g) => a + (Number(g.attending) || 0), 0), seats = G.reduce((a, g) => a + g.seats, 0), waitSeats = wait.reduce((a, g) => a + g.seats, 0);
+  const q = S.q.trim().toLowerCase();
+  const list = G.filter(g => (S.flt === "all" || (S.flt === "yes" && g.rsvp === "Attending") || (S.flt === "no" && g.rsvp === "Declined") || (S.flt === "wait" && !g.rsvp)) && (!q || (g.first + " " + g.last + " " + g.table).toLowerCase().includes(q)));
+  const tag = g => g.rsvp === "Attending" ? `<span class="tag yes">Attending ${g.attending}</span>` : g.rsvp === "Declined" ? '<span class="tag no">Declined</span>' : '<span class="tag wait">Waiting</span>';
+  $("#pane").innerHTML = `<div class="card"><div class="stats"><div class="stat"><b>${head}</b><span>guests attending (${yes.length} invitations)</span></div><div class="stat"><b>${no.length}</b><span>declined</span></div><div class="stat"><b>${wait.length}</b><span>not replied (${waitSeats} seats)</span></div><div class="stat"><b>${seats}</b><span>seats invited in total</span></div></div></div>
+    <div class="card"><div class="row"><input id="q" placeholder="Search name or table" value="${esc(S.q)}" style="flex:1;min-width:150px"><select id="f" style="width:auto"><option value="all">All</option><option value="yes">Attending</option><option value="no">Declined</option><option value="wait">Waiting</option></select></div>
+    <div class="row m"><button id="add">+ Add guest</button><button class="g" id="imp">Import list</button><button class="g" id="csv">Export CSV</button></div></div>
+    <div class="card" style="padding:4px 10px"><table><thead><tr><th>Guest</th><th>Seats</th><th>Table</th><th>Reply</th></tr></thead><tbody>${list.map(g => `<tr class="click" data-r="${g.row}"><td><b>${esc(g.first)} ${esc(g.last)}</b>${g.note ? `<div class="small muted">“${esc(g.note)}”</div>` : ""}</td><td>${g.seats}</td><td>${esc(g.table)}</td><td>${tag(g)}</td></tr>`).join("") || '<tr><td colspan="4" class="muted">No guests match.</td></tr>'}</tbody></table></div>`;
+  $("#f").value = S.flt;
+  $("#q").oninput = e => { S.q = e.target.value; const p = e.target.selectionStart; drawGuests(); const n = $("#q"); n.focus(); n.setSelectionRange(p, p); };
+  $("#f").onchange = e => { S.flt = e.target.value; drawGuests(); };
+  document.querySelectorAll("tr.click").forEach(r => r.onclick = () => editGuest(G.find(g => g.row === Number(r.dataset.r))));
+  $("#add").onclick = () => editGuest(null);
+  $("#imp").onclick = () => modal(`<h2>Import guests</h2><p class="small muted">One per line: <b>First, Last, Seats, Table</b> (commas or tabs — you can paste straight from Excel or Sheets). Seats and table are optional.</p>
+    <textarea id="tx" placeholder="Maria, Santos, 2, 4&#10;Jose, Santos, 1, 7"></textarea><p class="msg err" id="mm"></p><div class="row m"><button id="ok">Import</button><button class="g" id="no">Cancel</button></div>`, m => {
+    $("#no", m).onclick = closeModal;
+    $("#ok", m).onclick = async () => { $("#ok", m).disabled = true; try { await api("admin_import", S.id, $("#tx", m).value); await refreshGuests(); closeModal(); } catch (x) { $("#ok", m).disabled = false; say($("#mm", m), x.message); } };
+  });
+  $("#csv").onclick = () => {
+    const rows = [["First name", "Last name", "Seats", "Table", "Reply", "Attending", "Note"]].concat(G.map(g => [g.first, g.last, g.seats, g.table, g.rsvp, g.attending, g.note]));
+    const csv = rows.map(r => r.map(c => '"' + String(c == null ? "" : c).replace(/"/g, '""') + '"').join(",")).join("\r\n");
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv" })); a.download = (S.E.name || "guests").replace(/[^\w-]+/g, "_") + ".csv"; a.click();
+  };
+}
+async function refreshGuests() { S.guests = await api("admin_guests", S.id); await loadAll(); drawGuests(); }
+function editGuest(g) {
+  modal(`<h2>${g ? "Edit guest" : "Add guest"}</h2><div class="grid"><div><label>First name</label><input id="gf" value="${esc(g ? g.first : "")}"></div><div><label>Last name</label><input id="gl" value="${esc(g ? g.last : "")}"></div>
+    <div><label>Seats</label><input id="gs" type="number" min="1" max="20" value="${g ? g.seats : 1}"></div><div><label>Table</label><input id="gt" value="${esc(g ? g.table : "")}"></div></div>
+    ${g && g.rsvp ? `<p class="small muted" style="margin-top:10px">Reply: ${esc(g.rsvp)}${g.rsvp === "Attending" ? " (" + g.attending + ")" : ""}${g.note ? " — “" + esc(g.note) + "”" : ""}</p>` : ""}
+    <p class="msg err" id="mm"></p><div class="row m"><button id="ok">Save</button><button class="g" id="no">Cancel</button>${g ? '<button class="r" id="del" style="margin-left:auto">Remove</button>' : ""}</div>`, m => {
+    $("#no", m).onclick = closeModal;
+    $("#ok", m).onclick = async () => { $("#ok", m).disabled = true; try { await api("admin_guest_save", S.id, { row: g ? g.row : 0, first: $("#gf", m).value, last: $("#gl", m).value, seats: $("#gs", m).value, table: $("#gt", m).value }); await refreshGuests(); closeModal(); } catch (x) { $("#ok", m).disabled = false; say($("#mm", m), x.message); } };
+    if (g) $("#del", m).onclick = async () => { if ($("#del", m).dataset.s !== "1") { $("#del", m).dataset.s = "1"; $("#del", m).textContent = "Tap again to remove"; return; } try { await api("admin_guest_clear", S.id, g.row); await refreshGuests(); closeModal(); } catch (x) { say($("#mm", m), x.message); } };
+  });
+}
+
+// ----- gallery -----
+async function gallery() {
+  $("#pane").innerHTML = '<p class="muted">Loading…</p>';
+  try { if (!S.gal) S.gal = await api("admin_gallery", S.id); } catch (e) { $("#pane").innerHTML = `<p class="msg err">${esc(e.message)}</p>`; return; }
+  $("#pane").innerHTML = `<div class="card"><h2>Shared moments (${S.gal.length})</h2><p class="small muted">Tap to open in Google Drive, where you can download. The full folder is on the Overview tab.</p>
+    <div class="gal">${S.gal.map(g => `<a href="https://drive.google.com/file/d/${esc(g.id)}/view" target="_blank" rel="noopener"><img loading="lazy" alt="" src="https://drive.google.com/thumbnail?id=${esc(g.id)}&sz=w300"><em>${g.type === "video" ? "▶ " : ""}${esc(g.from)}</em></a>`).join("") || '<p class="muted">Nothing shared yet.</p>'}</div></div>`;
+}
+
+// ---------- start ----------
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+(async () => {
+  let saved = {}; try { saved = JSON.parse(localStorage.getItem("adm") || "{}"); } catch (e) {}
+  if (saved.url && saved.pin) {
+    S.url = saved.url; S.pin = saved.pin;
+    try { await loadAll(); return home(); } catch (e) { return login(e.message); }
+  }
+  login();
+})();
+</script>
+</body>
+</html>
