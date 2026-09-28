@@ -49,9 +49,12 @@
   .modal iframe { width: 100%; height: min(78vh, 760px); border: 0; display: block; }
   .chk { display: flex; gap: 8px; align-items: flex-start; margin: 8px 0; font-size: 14px; } .chk input { width: auto; margin-top: 3px; }
   .sticky { position: sticky; bottom: 0; background: linear-gradient(transparent, var(--bg) 30%); padding: 14px 0 6px; }
+  #bar { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 50; opacity: 0; background: linear-gradient(90deg, transparent, #fff, transparent); background-size: 40% 100%; background-repeat: no-repeat; animation: slide 1s linear infinite; transition: opacity .2s; }
+  body.busy #bar { opacity: 1; } @keyframes slide { from { background-position: -40% 0; } to { background-position: 140% 0; } }
 </style>
 </head>
 <body>
+<div id="bar"></div>
 <header class="top"><h1 id="title">Invitation Admin</h1><span id="hbtn"></span></header>
 <main id="app"></main>
 <div id="modal"></div>
@@ -66,11 +69,22 @@ const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&a
 const S = { url: "", pin: "", events: [], defaults: {}, appUrl: "", id: null, E: null, tab: "overview", guests: null, gal: null, q: "", flt: "all" };
 
 // ---------- talking to the Apps Script backend ----------
+let busy = 0;
 async function api(fn, ...args) {
-  const r = await fetch(S.url, { method: "POST", body: JSON.stringify({ fn, args: [S.pin, ...args] }) });
-  let j; try { j = await r.json(); } catch (e) { throw new Error("The server did not answer properly. Check the web app link and that it is deployed."); }
-  if (!j.ok) throw new Error(j.error || "Something went wrong.");
-  return j.data;
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 100000);
+  busy++; document.body.classList.add("busy");
+  try {
+    let r;
+    try { r = await fetch(S.url, { method: "POST", body: JSON.stringify({ fn, args: [S.pin, ...args] }), signal: ctl.signal }); }
+    catch (e) { throw new Error(e.name === "AbortError" ? "The server is taking too long. Wait a moment, then check the list before trying again." : "Couldn't reach the server. Check your internet connection and try again."); }
+    let j; try { j = await r.json(); } catch (e) { throw new Error("The server was too slow to answer. Wait a few seconds, then refresh the list before trying again."); }
+    if (!j.ok) throw new Error(j.error || "Something went wrong.");
+    return j.data;
+  } finally { clearTimeout(timer); if (--busy <= 0) { busy = 0; document.body.classList.remove("busy"); } }
+}
+const statText = e => e.guests == null ? "loading counts…" : e.guests + " invitations · " + e.replied + " replied · " + e.uploads + " moments";
+async function fillStats(list, after) {
+  for (const ev of list) { if (ev.guests != null) continue; try { Object.assign(ev, await api("admin_stats", ev.id)); } catch (e) { continue; } if (after) after(ev); }
 }
 const say = (el, t, ok) => { el.className = "msg " + (ok ? "ok" : "err"); el.textContent = t || ""; };
 
@@ -115,14 +129,20 @@ function home() {
   $("#title").textContent = "Your events";
   $("#hbtn").innerHTML = '<button id="out">Sign out</button>';
   $("#out").onclick = () => { try { localStorage.setItem("adm", JSON.stringify({ url: S.url, pin: "" })); } catch (e) {} login(); };
-  $("#app").innerHTML = S.events.map(e => `<div class="card ev" data-id="${esc(e.id)}"><div><b>${esc(e.name)}</b><div class="small muted">Code ${esc(e.code)} · ${e.guests} invitations · ${e.replied} replied · ${e.uploads} moments</div>
+  $("#app").innerHTML = S.events.map(e => `<div class="card ev" data-id="${esc(e.id)}"><div><b>${esc(e.name)}</b><div class="small muted">Code ${esc(e.code)} · <span class="st" data-s="${esc(e.id)}">${statText(e)}</span></div>
     <div style="margin-top:6px"><span class="chip">${esc((OPENINGS.find(o => o[0] === e.opening) || ["", "", e.opening])[2])}</span><span class="chip">${esc((SCHEMES.find(o => o[0] === e.scheme) || ["", e.scheme])[1])}</span></div></div><span class="muted">›</span></div>`).join("")
-    + '<div class="row"><button id="new">+ New event</button></div><p class="msg" id="m"></p>';
+    + '<div class="row"><button id="new">+ New event</button></div><p class="msg err" id="m">' + esc(S.notice || "") + '</p>';
+  S.notice = "";
+  fillStats(S.events, ev => { const s = document.querySelector('[data-s="' + ev.id + '"]'); if (s) s.textContent = statText(ev); });
   document.querySelectorAll(".ev").forEach(c => c.onclick = () => openEvent(c.dataset.id));
   $("#new").onclick = async () => {
-    const code = "E" + Math.floor(1000 + Math.random() * 9000);
-    try { await api("admin_save", { name: "New event", code, opening: "scratch", scheme: "blush", limit: 3, cfg: {} }); await loadAll(); home(); }
-    catch (e) { say($("#m"), e.message); }
+    const b = $("#new"); if (b.disabled) return;
+    b.disabled = true; b.textContent = "Creating…"; say($("#m"), "Setting up a new Google Sheet and Drive folder. This takes about 10 seconds — please wait, one click is enough.", true);
+    const before = S.events.length; let err = "";
+    try { await api("admin_save", { name: "New event", code: "E" + Math.floor(1000 + Math.random() * 9000), opening: "scratch", scheme: "blush", limit: 3, cfg: {} }); } catch (e) { err = e.message; }
+    try { await loadAll(); } catch (e) { err = err || e.message; }
+    if (err) S.notice = S.events.length > before ? "The new event was created, but the server was slow to confirm." : err;
+    home();
   };
 }
 
@@ -150,7 +170,8 @@ async function saveEvent(btn, msgEl) {
   try {
     const d = S.E;
     await api("admin_save", { id: S.id, name: d.name, code: d.code, opening: d.opening, scheme: d.scheme, limit: d.limit, cfg: d.cfg, photoId: d.photoId, coverId: d.coverId });
-    await loadAll(); S.E = JSON.parse(JSON.stringify(cur())); $("#title").textContent = S.E.name;
+    d.code = String(d.code || "").replace(/\s+/g, "").toUpperCase();
+    Object.assign(cur(), JSON.parse(JSON.stringify(d))); S.E = JSON.parse(JSON.stringify(cur())); $("#title").textContent = S.E.name;
     say(msgEl, "Saved.", true); btn.disabled = false; return true;
   } catch (e) { say(msgEl, e.message); btn.disabled = false; return false; }
 }
@@ -158,7 +179,8 @@ async function saveEvent(btn, msgEl) {
 // ----- overview -----
 function overview() {
   const e = cur();
-  $("#pane").innerHTML = `<div class="card"><h2>${esc(e.name)}</h2><div class="stats" id="st"><div class="stat"><b>${e.guests}</b><span>invitations</span></div><div class="stat"><b>${e.replied}</b><span>replied</span></div><div class="stat"><b>${e.uploads}</b><span>shared moments</span></div></div>
+  if (e.guests == null) fillStats([e], () => { if (S.tab === "overview" && S.id === e.id) overview(); });
+  $("#pane").innerHTML = `<div class="card"><h2>${esc(e.name)}</h2><div class="stats" id="st"><div class="stat"><b>${e.guests == null ? "…" : e.guests}</b><span>invitations</span></div><div class="stat"><b>${e.replied == null ? "…" : e.replied}</b><span>replied</span></div><div class="stat"><b>${e.uploads == null ? "…" : e.uploads}</b><span>shared moments</span></div></div>
     <p class="small muted" style="margin:10px 0 0">Open the Guests tab for attending / declined / pending totals.</p></div>
     <div class="card"><h2>Guest link</h2><p class="small muted">Guests need the code <b>${esc(e.code)}</b>. This link fills it in for them.</p>
       <input readonly id="lnk" value="${esc(guestLink())}"><div class="row m"><button class="g" id="cp">Copy link</button><a href="${esc(guestLink())}" target="_blank" rel="noopener"><button class="g" type="button">Open</button></a>
