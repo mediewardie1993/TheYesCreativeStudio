@@ -141,7 +141,9 @@ function drawEvent() {
   ({ overview, guests, look, details, gallery })[S.tab]();
 }
 const cur = () => S.events.find(e => e.id === S.id);
-const guestLink = () => S.appUrl + "?code=" + encodeURIComponent(S.E.code);
+const HOSTED = "https://mediewardie1993.github.io/TheYesCreativeStudio/";
+const guestLink = () => HOSTED + "i/?code=" + encodeURIComponent(S.E.code);
+const coupleLink = e => HOSTED + "c/?view=" + (e.viewKey || "");
 
 async function saveEvent(btn, msgEl) {
   btn.disabled = true; say(msgEl, "Saving…", true);
@@ -163,7 +165,7 @@ function overview() {
       ${e.sheetUrl ? `<a href="${esc(e.sheetUrl)}" target="_blank" rel="noopener"><button class="g" type="button">Google Sheet</button></a>` : ""}
       ${e.folderUrl ? `<a href="${esc(e.folderUrl)}" target="_blank" rel="noopener"><button class="g" type="button">Drive folder</button></a>` : ""}</div></div>
     <div class="card"><h2>Bride &amp; groom's page</h2><p class="small muted">A private page for the couple: who accepted, who declined, who hasn't replied, and every photo and video guests sent. Read-only. Send them this link; anyone with it can view.</p>
-      <input readonly id="vlnk" value="${esc(S.appUrl + "?view=" + (e.viewKey || ""))}"><div class="row m"><button class="g" id="vcp">Copy link</button><a href="${esc(S.appUrl + "?view=" + (e.viewKey || ""))}" target="_blank" rel="noopener"><button class="g" type="button">Open</button></a></div></div>
+      <input readonly id="vlnk" value="${esc(coupleLink(e))}"><div class="row m"><button class="g" id="vcp">Copy link</button><a href="${esc(coupleLink(e))}" target="_blank" rel="noopener"><button class="g" type="button">Open</button></a></div></div>
     <div class="card"><h2>Manage</h2><div class="row"><button class="g" id="dup">Duplicate</button><button class="g" id="rst">Reset…</button><button class="r" id="rm">Remove</button></div><p class="msg" id="m"></p></div>`;
   $("#lnk").onclick = () => $("#lnk").select();
   $("#vlnk").onclick = () => $("#vlnk").select();
