@@ -100,6 +100,7 @@ const closeModal = () => { $("#modal").innerHTML = ""; };
 function login(msg) {
   S.pin = ""; $("#title").textContent = "Invitation Admin"; $("#hbtn").innerHTML = "";
   let saved = {}; try { saved = JSON.parse(localStorage.getItem("adm") || "{}"); } catch (e) {}
+  if (window.ADMIN_PRESET) saved = window.ADMIN_PRESET;
   $("#app").innerHTML = `<div class="card"><h2>Sign in</h2>
     <p class="muted small">Paste your Apps Script web app link (ends in /exec) and your admin PIN.</p>
     <label>Web app link</label><input id="u" placeholder="https://script.google.com/macros/s/…/exec" value="${esc(saved.url || "")}" autocapitalize="off" autocomplete="off">
@@ -332,7 +333,16 @@ if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catc
 (async () => {
   let saved = {}; try { saved = JSON.parse(localStorage.getItem("adm") || "{}"); } catch (e) {}
   const q = new URLSearchParams(location.search), pre = window.ADMIN_CONFIG || (q.get("u") ? { url: q.get("u"), pin: q.get("p") } : null);
-  if (pre && pre.url && pre.pin) saved = pre; // pre-set by the desktop/Android app: skip the sign-in screen
+  if (pre && pre.url && pre.pin) { // pre-set by the desktop/Android app: never show the sign-in screen
+    window.ADMIN_PRESET = pre; S.url = pre.url; S.pin = pre.pin;
+    for (let n = 1; ; n++) {
+      try { await loadAll(); return home(); }
+      catch (e) {
+        $("#app").innerHTML = `<div class="card"><h2>Connecting…</h2><p class="muted">${esc(e.message)}</p><p class="small muted">Trying again automatically (attempt ${n}).</p><div class="row m"><button onclick="location.reload()">Retry now</button></div></div>`;
+        await new Promise(r => setTimeout(r, 4000));
+      }
+    }
+  }
   if (saved.url && saved.pin) {
     S.url = saved.url; S.pin = saved.pin;
     try { await loadAll(); return home(); } catch (e) { return login(e.message); }
