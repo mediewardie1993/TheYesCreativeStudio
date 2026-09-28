@@ -129,16 +129,16 @@ function home() {
 // ---------- event ----------
 function openEvent(id, tab) {
   S.id = id; S.E = JSON.parse(JSON.stringify(S.events.find(e => e.id === id))); S.E.cfg = S.E.cfg || {};
-  S.tab = tab || "overview"; S.guests = null; S.gal = null; drawEvent();
+  S.tab = tab || "overview"; S.guests = null; S.gal = null; S.msgs = null; drawEvent();
 }
 function drawEvent() {
   $("#title").textContent = S.E.name;
   $("#hbtn").innerHTML = '<button id="back">← Events</button>';
   $("#back").onclick = () => home();
-  const tabs = [["overview", "Overview"], ["guests", "Guests"], ["look", "Look"], ["details", "Details"], ["gallery", "Gallery"]];
+  const tabs = [["overview", "Overview"], ["guests", "Guests"], ["look", "Look"], ["details", "Details"], ["messages", "Messages"], ["gallery", "Gallery"]];
   $("#app").innerHTML = '<div class="tabs">' + tabs.map(t => `<button data-t="${t[0]}" class="${S.tab === t[0] ? "on" : ""}">${t[1]}</button>`).join("") + '</div><div id="pane"></div>';
   document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { S.tab = b.dataset.t; drawEvent(); });
-  ({ overview, guests, look, details, gallery })[S.tab]();
+  ({ overview, guests, look, details, messages, gallery })[S.tab]();
 }
 const cur = () => S.events.find(e => e.id === S.id);
 const HOSTED = "https://mediewardie1993.github.io/TheYesCreativeStudio/";
@@ -182,9 +182,10 @@ function overview() {
     <div class="chk"><input type="checkbox" id="r1" checked><span>Clear all RSVP replies</span></div>
     <div class="chk"><input type="checkbox" id="r2" checked><span>Give every guest their uploads back</span></div>
     <div class="chk"><input type="checkbox" id="r3"><span>Empty the guests' gallery (files stay in Drive)</span></div>
+    <div class="chk"><input type="checkbox" id="r4"><span>Empty the guests' messages</span></div>
     <p class="msg err" id="mm"></p><div class="row m"><button class="r" id="ok">Reset</button><button class="g" id="no">Cancel</button></div>`, m => {
     $("#no", m).onclick = closeModal;
-    $("#ok", m).onclick = async () => { $("#ok", m).disabled = true; try { await api("admin_reset", e.id, { responses: $("#r1", m).checked, uploads: $("#r2", m).checked, gallery: $("#r3", m).checked }); await loadAll(); closeModal(); S.guests = null; S.gal = null; drawEvent(); } catch (x) { $("#ok", m).disabled = false; say($("#mm", m), x.message); } };
+    $("#ok", m).onclick = async () => { $("#ok", m).disabled = true; try { await api("admin_reset", e.id, { responses: $("#r1", m).checked, uploads: $("#r2", m).checked, gallery: $("#r3", m).checked, messages: $("#r4", m).checked }); await loadAll(); closeModal(); S.guests = null; S.gal = null; drawEvent(); } catch (x) { $("#ok", m).disabled = false; say($("#mm", m), x.message); } };
   });
   $("#rm").onclick = () => modal(`<h2>Remove this event?</h2><p class="small muted">It disappears from the list and its code stops working. The Google Sheet and Drive folder are not deleted.</p>
     <p class="msg err" id="mm"></p><div class="row m"><button class="r" id="ok">Remove</button><button class="g" id="no">Cancel</button></div>`, m => {
@@ -232,7 +233,10 @@ function details() {
     ${f("cfg.location.label", "Venue box heading", cl.label, dl.label, "w")}
     ${f("cfg.memories.title", "Photo page title", cm.title, me.title)}${f("cfg.memories.nextLabel", "Button to the photo page", cm.nextLabel, me.nextLabel)}
     ${t("cfg.memories.intro", "Photo page intro", cm.intro, me.intro)}${t("cfg.memories.qrLabel", "Invite-others text (under the QR code)", cm.qrLabel, me.qrLabel)}
-    ${t("cfg.memories.thanks", "After a photo is sent", cm.thanks, me.thanks)}</div></div>
+    ${t("cfg.memories.thanks", "After a photo is sent", cm.thanks, me.thanks)}
+    ${f("cfg.messages.title", "Message box title", (cf.messages || {}).title, "A message for the couple", "w")}${t("cfg.messages.intro", "Message box intro", (cf.messages || {}).intro, "Leave your wishes, a memory or a little note. Only the couple will read it.")}
+    ${f("cfg.messages.placeholder", "Message box hint", (cf.messages || {}).placeholder, "Write your message…")}${f("cfg.messages.send", "Send button", (cf.messages || {}).send, "Send message")}
+    ${t("cfg.messages.thanks", "After a message is sent", (cf.messages || {}).thanks, "Sent! Thank you for your kind words.")}</div></div>
     <div class="card"><h2>Pictures from your Drive</h2><p class="small muted">Paste a Drive file link (max 3 MB each). Empty = default pictures.</p><div class="grid">
     ${f("photoId", "Couple photo", E.photoId, "", "w")}${f("coverId", "Scratch cover image", E.coverId, "", "w")}</div></div>
     <div class="sticky"><button id="sv">Save</button><p class="msg" id="m"></p></div>`;
@@ -284,6 +288,13 @@ function editGuest(g) {
     $("#ok", m).onclick = async () => { $("#ok", m).disabled = true; try { await api("admin_guest_save", S.id, { row: g ? g.row : 0, first: $("#gf", m).value, last: $("#gl", m).value, seats: $("#gs", m).value, table: $("#gt", m).value }); await refreshGuests(); closeModal(); } catch (x) { $("#ok", m).disabled = false; say($("#mm", m), x.message); } };
     if (g) $("#del", m).onclick = async () => { if ($("#del", m).dataset.s !== "1") { $("#del", m).dataset.s = "1"; $("#del", m).textContent = "Tap again to remove"; return; } try { await api("admin_guest_clear", S.id, g.row); await refreshGuests(); closeModal(); } catch (x) { say($("#mm", m), x.message); } };
   });
+}
+
+// ----- messages -----
+async function messages() {
+  $("#pane").innerHTML = '<p class="muted">Loading…</p>';
+  try { if (!S.msgs) S.msgs = await api("admin_messages", S.id); } catch (e) { $("#pane").innerHTML = `<p class="msg err">${esc(e.message)}</p>`; return; }
+  $("#pane").innerHTML = `<div class="card"><h2>Messages for the couple (${S.msgs.length})</h2>${S.msgs.map(m => `<div style="padding:10px 0;border-top:1px solid var(--line)"><b>${esc(m.from)}</b> <span class="small muted">${m.at ? new Date(m.at).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : ""}</span><div style="white-space:pre-wrap">${esc(m.text)}</div></div>`).join("") || '<p class="muted">No messages yet.</p>'}</div>`;
 }
 
 // ----- gallery -----

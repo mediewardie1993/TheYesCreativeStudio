@@ -376,7 +376,8 @@
         <div class="table-no" id="table-box"><span>Table</span><b id="table-no"></b></div>
         <a class="btn" id="map" target="_blank" rel="noopener">Open in Maps</a>
       </div>
-      <div class="actions" id="next-wrap"><button class="btn" type="button" id="to-cam" data-t="memories.nextLabel"></button></div>
+      <div id="msg-done"></div>
+    <div class="actions" id="next-wrap"><button class="btn" type="button" id="to-cam" data-t="memories.nextLabel"></button></div>
       <div class="actions"><button class="link" type="button" data-back="s-find">Reply for someone else</button></div>
     </div>
   </div>
@@ -416,6 +417,7 @@
       <div class="grid" id="gal"></div>
       <p class="msg" id="gal-msg"></p>
     </div>
+      <div id="msg-cam"></div>
       <div class="mem" id="mem-card">
         <div class="label" data-t="memories.title"></div>
         <p data-t="memories.qrLabel"></p>
@@ -1227,6 +1229,30 @@
   }
   setView("empty");
 
+  // ---------- a message for the couple ----------
+  const MSG_DEFAULT = { title: "A message for the couple", intro: "Leave your wishes, a memory or a little note. Only the couple will read it.", placeholder: "Write your message…", send: "Send message", thanks: "Sent! Thank you for your kind words." };
+  const msgText = k => (C.messages && C.messages[k]) || MSG_DEFAULT[k];
+  function mountMsg(slot) {
+    const el = $(slot); if (!el) return;
+    el.innerHTML = '<div class="mem"><div class="label"></div><p></p><div class="field" style="margin-top:10px"><textarea maxlength="1000" style="min-height:96px"></textarea></div><div class="actions"><button class="btn" type="button"></button></div><p class="msg"></p></div>';
+    const box = el.firstChild, ta = box.querySelector("textarea"), btn = box.querySelector("button"), note = box.querySelector(".msg");
+    box.querySelector(".label").textContent = msgText("title");
+    box.querySelector("p").textContent = msgText("intro");
+    ta.placeholder = msgText("placeholder"); btn.textContent = msgText("send");
+    btn.addEventListener("click", async () => {
+      const text = ta.value.trim(), reg = getReg();
+      note.className = "msg";
+      if (text.length < 2) { note.className = "msg err"; note.textContent = "Please write a message first."; return; }
+      if (!reg) { note.className = "msg err"; note.textContent = "Please RSVP first, then you can leave a message."; return; }
+      btn.disabled = true; note.textContent = "Sending…";
+      try {
+        if (live) await run("sendMessage", CODE, reg.id, reg.last, text); else await new Promise(r => setTimeout(r, 400));
+        ta.value = ""; note.textContent = msgText("thanks"); petals();
+      } catch (err) { note.className = "msg err"; note.textContent = (err && err.message) || "We couldn't send that. Please try again."; }
+      finally { btn.disabled = false; }
+    });
+  }
+
   // ---------- invitation code gate ----------
   const qs = new URLSearchParams(location.search);
   let pendingPage = null;
@@ -1244,7 +1270,7 @@
       REG_KEY = "std-reg-v1-" + code.toUpperCase().replace(/\s+/g, "");
       REMEMBER = !!M.rememberDevice;
       if (!REMEMBER) { try { localStorage.removeItem(REG_KEY); } catch (e) {} }
-      setScheme(ev.scheme); fill(); drawQr(); left = MAX_UPLOADS;
+      setScheme(ev.scheme); fill(); drawQr(); mountMsg("msg-done"); mountMsg("msg-cam"); left = MAX_UPLOADS;
       msg.textContent = "";
       showScreen("stage");
       const toCam = M.enabled && (pendingPage === "camera" || getReg());
