@@ -56,6 +56,7 @@
 <main id="app"></main>
 <div id="modal"></div>
 
+<script src="config.js" onerror="void 0"></script>
 <script>
 "use strict";
 const OPENINGS = [["scratch","✏️","Scratch the chalk"],["envelope","✉️","Open the envelope"],["veil","👰","Lift the veil"],["ring","💍","Ring on the finger"],["knot","🎀","Untie the knot"],["curtains","🎭","Open the curtains"]];
@@ -278,6 +279,8 @@ async function gallery() {
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 (async () => {
   let saved = {}; try { saved = JSON.parse(localStorage.getItem("adm") || "{}"); } catch (e) {}
+  const q = new URLSearchParams(location.search), pre = window.ADMIN_CONFIG || (q.get("u") ? { url: q.get("u"), pin: q.get("p") } : null);
+  if (pre && pre.url && pre.pin) saved = pre; // pre-set by the desktop/Android app: skip the sign-in screen
   if (saved.url && saved.pin) {
     S.url = saved.url; S.pin = saved.pin;
     try { await loadAll(); return home(); } catch (e) { return login(e.message); }

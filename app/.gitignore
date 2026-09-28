@@ -5,3 +5,5 @@ android/build/
 android/.gradle/
 android/app/build/
 android/local.properties
+local-config.json
+admin-config.json
