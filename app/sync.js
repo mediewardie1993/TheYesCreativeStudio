@@ -1,8 +1,9 @@
 // Copies the private admin web files (repo root /admin-src, never published to GitHub Pages) into app/www for the Electron and Android builds.
 const fs = require("fs"), path = require("path");
 const root = path.join(__dirname, "..");
-fs.rmSync(path.join(__dirname, "www"), { recursive: true, force: true });
-fs.mkdirSync(path.join(__dirname, "www"));
+// Overwrite files in place rather than deleting the folder first — a browser tab or preview server can hold one
+// of the video files open, which makes a recursive delete fail on Windows even though a plain overwrite works fine.
+fs.mkdirSync(path.join(__dirname, "www"), { recursive: true });
 for (const f of ["index.html", "manifest.webmanifest", "sw.js", "icon-192.png", "icon-512.png"]) fs.copyFileSync(path.join(root, "admin-src", f), path.join(__dirname, "www", f));
 // A copy of the real guest page, bundled so "Preview" can render instantly offline — no network, no Google flakiness.
 fs.copyFileSync(path.join(root, "guest-source.html"), path.join(__dirname, "www", "preview-guest.html"));
