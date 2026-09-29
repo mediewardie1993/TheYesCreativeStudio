@@ -54,6 +54,7 @@ if (!g.includes("google.script.run") || !g.includes(shim.slice(0, 40))) throw ne
 out("i", g);
 fs.copyFileSync(path.join(__dirname, "assets", "curtain-open.mp4"), path.join(__dirname, "i", "curtain-open.mp4"));
 fs.copyFileSync(path.join(__dirname, "assets", "ring-on.mp4"), path.join(__dirname, "i", "ring-on.mp4"));
+fs.copyFileSync(path.join(__dirname, "assets", "door-open.mp4"), path.join(__dirname, "i", "door-open.mp4"));
 
 // couple page
 let c = fs.readFileSync(path.join(__dirname, "couple-source.html"), "utf8");

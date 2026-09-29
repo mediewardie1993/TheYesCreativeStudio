@@ -229,8 +229,9 @@
 
   /* curtains: a real filmed velvet curtain (green-screened), keyed transparent live via the SVG filter above */
   .cur-back { position: absolute; inset: 0; background: var(--ivory); }
-  .cur-vid { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: url(#curtain-chroma); background: var(--ivory); }
-  .cur-vid.fade { transition: opacity .5s ease; opacity: 0; }
+  /* shared by every filmed opening that keys green out live (curtain, church door) */
+  .keyed-vid { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: url(#curtain-chroma); background: var(--ivory); }
+  .keyed-vid.fade { transition: opacity .5s ease; opacity: 0; }
 </style>
 <script>
 /* Lets the page use google.script.run / google.script.url exactly as it does inside Apps Script, but over plain fetch. */
@@ -805,29 +806,33 @@
         if (tap) finish(); else { el.classList.add("easing"); set(0); }
       });
     },
-    curtains(el, done) {
-      el.innerHTML = '<div class="cur-back"></div><video class="cur-vid" muted playsinline preload="auto"><source src="curtain-open.mp4" type="video/mp4"></video>' + hintEl("tap to draw the curtains");
-      const v = el.querySelector("video");
-      let fin = false, ended = false;
-      const finish = () => {
-        if (ended) return; ended = true;
-        v.classList.add("fade");
-        setTimeout(done, 500);
-      };
-      const begin = () => {
-        if (fin) return;
-        fin = true; el.classList.add("busy");
-        const p = v.play();
-        if (p && p.catch) p.catch(finish); // autoplay blocked (rare after a real tap) — reveal anyway
-        // Safety net: a stall, a throttled/backgrounded tab or a slow phone must never leave a guest stuck on a frozen curtain.
-        setTimeout(finish, (isFinite(v.duration) && v.duration > 0 ? v.duration * 1000 : 4000) + 1000);
-      };
-      v.addEventListener("ended", finish);
-      v.addEventListener("error", finish);
-      document.addEventListener("visibilitychange", () => { if (fin && !ended && !document.hidden && v.paused) v.play().catch(() => {}); });
-      dragOn(el, () => {}, () => begin());
-    }
+    curtains(el, done) { playKeyedVideo(el, "curtain-open.mp4", done, "tap to draw the curtains", 4000); },
+    door(el, done) { playKeyedVideo(el, "door-open.mp4", done, "tap to open the door", 6000); }
   };
+
+  // A tap-to-play, green-keyed clip that fades its final frame away once it ends — shared by curtains and the church door.
+  function playKeyedVideo(el, src, done, hint, fallbackMs) {
+    el.innerHTML = '<div class="cur-back"></div><video class="keyed-vid" muted playsinline preload="auto"><source src="' + src + '" type="video/mp4"></video>' + hintEl(hint);
+    const v = el.querySelector("video");
+    let fin = false, ended = false;
+    const finish = () => {
+      if (ended) return; ended = true;
+      v.classList.add("fade");
+      setTimeout(done, 500);
+    };
+    const begin = () => {
+      if (fin) return;
+      fin = true; el.classList.add("busy");
+      const p = v.play();
+      if (p && p.catch) p.catch(finish); // autoplay blocked (rare after a real tap) — reveal anyway
+      // Safety net: a stall, a throttled/backgrounded tab or a slow phone must never leave a guest stuck on a frozen frame.
+      setTimeout(finish, (isFinite(v.duration) && v.duration > 0 ? v.duration * 1000 : fallbackMs) + 1000);
+    };
+    v.addEventListener("ended", finish);
+    v.addEventListener("error", finish);
+    document.addEventListener("visibilitychange", () => { if (fin && !ended && !document.hidden && v.paused) v.play().catch(() => {}); });
+    dragOn(el, () => {}, () => begin());
+  }
 
   // kind: scratch | envelope | ring | knot | curtains | none (already open)
   function startOpening(kind) {
