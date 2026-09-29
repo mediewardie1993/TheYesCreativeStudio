@@ -138,6 +138,12 @@
   .venue a.btn { display: inline-block; text-decoration: none; margin-top: 14px; }
   .demo { position: fixed; top: max(16px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); font-size: 12px; font-style: italic; color: var(--muted); background: rgba(251,247,240,.9); padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); z-index: 3; white-space: nowrap; }
 
+  /* ---------- Promo footer ---------- */
+  .promo { margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--line); text-align: center; }
+  .promo p { font-size: 14px; font-style: italic; color: var(--muted); margin: 0 0 8px; }
+  .promo a.plink { display: inline-block; font: 600 12px "Cormorant Garamond", Georgia, serif; letter-spacing: .2em; text-transform: uppercase; color: var(--gold-deep); text-decoration: none; border-bottom: 1px solid var(--gold-soft); padding-bottom: 2px; }
+  .promo a.plink:active { opacity: .7; }
+
   .petal { position: fixed; top: -24px; pointer-events: none; z-index: 5; border-radius: 150% 0 150% 0; animation: fall linear forwards; }
   @keyframes fall { to { transform: translate(var(--dx), 110vh) rotate(var(--rot)); opacity: .2; } }
   .crest { width: 84px; height: 84px; margin: 0 auto 10px; border-radius: 50%; background-color: #3a0b12; background-repeat: no-repeat; background-position: 50% 49%; background-size: 300%; box-shadow: 0 0 0 3px #fff, 0 0 0 4px var(--gold-soft), 0 10px 22px -12px rgba(90,40,48,.6); }
@@ -235,12 +241,10 @@
   .fall .kr { transform: translate(330px, 190px) rotate(30deg); opacity: 0; }
   .fall .kloops, .fall .kn, .fall .kt1, .fall .kt2 { opacity: 0; transition: opacity .5s; }
 
-  /* curtains */
-  .curt { position: absolute; top: 0; bottom: 0; width: 50.6%; z-index: 2; will-change: transform;
-    background: repeating-linear-gradient(90deg, rgba(0,0,0,.3) 0, rgba(255,255,255,.1) 5%, rgba(0,0,0,.3) 10%), var(--gold-deep); box-shadow: 0 0 40px rgba(0,0,0,.35); }
-  .curt.l { left: 0; } .curt.r { right: 0; }
-  .curt.go { transition: transform 1.3s cubic-bezier(.6,.05,.2,1); }
-  .valance { position: absolute; top: 0; left: 0; right: 0; height: 52px; z-index: 3; background: linear-gradient(var(--gold), var(--gold-deep)); border-bottom: 3px solid var(--gold-soft); box-shadow: 0 6px 14px rgba(0,0,0,.3); }
+  /* curtains: a real filmed velvet curtain (green-screened), keyed transparent live via the SVG filter above */
+  .cur-back { position: absolute; inset: 0; background: var(--ivory); }
+  .cur-vid { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: url(#curtain-chroma); background: var(--ivory); }
+  .cur-vid.fade { transition: opacity .5s ease; opacity: 0; }
 </style>
 <script>
 /* Lets the page use google.script.run / google.script.url exactly as it does inside Apps Script, but over plain fetch. */
@@ -283,6 +287,17 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 </head>
 <body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- Keys the green screen out of curtain-open.mp4 live, in CSS — no server-side video processing, works in Safari too. -->
+  <filter id="curtain-chroma" color-interpolation-filters="sRGB">
+    <feColorMatrix type="matrix" values="
+      1 0 0 0 0
+      0 1 0 0 0
+      0 0 1 0 0
+      1.1 -2.2 1.1 0 1" />
+  </filter>
+</svg>
 
 <!-- ============ EVERYTHING EDITABLE LIVES IN THIS BLOCK (use editor.html to change it) ============ -->
 <script id="config" type="application/json">{}</script>
@@ -393,6 +408,10 @@
       <div id="msg-done"></div>
     <div class="actions" id="next-wrap"><button class="btn" type="button" id="to-cam" data-t="memories.nextLabel"></button></div>
       <div class="actions"><button class="link" type="button" data-back="s-find">Reply for someone else</button></div>
+      <div class="promo">
+        <p>Loved this invitation?</p>
+        <a class="plink" href="#" target="_blank" rel="noopener">Get a card like this →</a>
+      </div>
     </div>
   </div>
 </main>
@@ -438,6 +457,10 @@
         <div class="qr" id="qr"></div>
       </div>
     <div class="actions" id="cam-back-wrap"><button class="link" type="button" id="cam-back">View the invitation again</button></div>
+    <div class="promo">
+      <p>Loved this invitation?</p>
+      <a class="plink" href="#" target="_blank" rel="noopener">Get a card like this →</a>
+    </div>
   </div>
 </main>
 
@@ -816,18 +839,26 @@
       });
     },
     curtains(el, done) {
-      el.innerHTML = '<div class="curt l"></div><div class="curt r"></div><div class="valance"></div>' + hintEl("draw the curtains");
-      const l = el.querySelector(".l"), r = el.querySelector(".r"); let p = 0, fin = false;
-      const set = v => { p = v; l.style.transform = "translateX(" + -v * 100 + "%)"; r.style.transform = "translateX(" + v * 100 + "%)"; };
-      dragOn(el, dx => {
+      el.innerHTML = '<div class="cur-back"></div><video class="cur-vid" muted playsinline preload="auto"><source src="curtain-open.mp4" type="video/mp4"></video>' + hintEl("tap to draw the curtains");
+      const v = el.querySelector("video");
+      let fin = false, ended = false;
+      const finish = () => {
+        if (ended) return; ended = true;
+        v.classList.add("fade");
+        setTimeout(done, 500);
+      };
+      const begin = () => {
         if (fin) return;
-        l.classList.remove("go"); r.classList.remove("go");
-        set(Math.min(1, Math.abs(dx) / (el.clientWidth * .5)));
-      }, tap => {
-        if (fin) return;
-        l.classList.add("go"); r.classList.add("go");
-        if (tap || p > .3) { fin = true; el.classList.add("busy"); set(1); setTimeout(done, 1100); } else set(0);
-      });
+        fin = true; el.classList.add("busy");
+        const p = v.play();
+        if (p && p.catch) p.catch(finish); // autoplay blocked (rare after a real tap) — reveal anyway
+        // Safety net: a stall, a throttled/backgrounded tab or a slow phone must never leave a guest stuck on a frozen curtain.
+        setTimeout(finish, (isFinite(v.duration) && v.duration > 0 ? v.duration * 1000 : 4000) + 1000);
+      };
+      v.addEventListener("ended", finish);
+      v.addEventListener("error", finish);
+      document.addEventListener("visibilitychange", () => { if (fin && !ended && !document.hidden && v.paused) v.play().catch(() => {}); });
+      dragOn(el, () => {}, () => begin());
     }
   };
 

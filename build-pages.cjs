@@ -52,6 +52,7 @@ if (g.includes("Kristian")) throw new Error("couple names still in guest page");
 g = g.replace('<script src="https://cdnjs', () => shim + '\n<script src="https://cdnjs');
 if (!g.includes("google.script.run") || !g.includes(shim.slice(0, 40))) throw new Error("shim missing");
 out("i", g);
+fs.copyFileSync(path.join(__dirname, "assets", "curtain-open.mp4"), path.join(__dirname, "i", "curtain-open.mp4"));
 
 // couple page
 let c = fs.readFileSync(path.join(__dirname, "couple-source.html"), "utf8");
