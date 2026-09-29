@@ -10,6 +10,7 @@ fs.copyFileSync(path.join(root, "guest-source.html"), path.join(__dirname, "www"
 fs.copyFileSync(path.join(root, "assets", "curtain-open.mp4"), path.join(__dirname, "www", "curtain-open.mp4"));
 fs.copyFileSync(path.join(root, "assets", "ring-on.mp4"), path.join(__dirname, "www", "ring-on.mp4"));
 fs.copyFileSync(path.join(root, "assets", "door-open.mp4"), path.join(__dirname, "www", "door-open.mp4"));
+fs.copyFileSync(path.join(root, "assets", "knot-open.mp4"), path.join(__dirname, "www", "knot-open.mp4"));
 console.log("web files synced");
 // Android/desktop builds: if app/local-config.json exists ({"url":"...","pin":"..."}) it is baked into this build only (git-ignored).
 try { const c = JSON.parse(fs.readFileSync(path.join(__dirname, "local-config.json"), "utf8")); fs.writeFileSync(path.join(__dirname, "www", "config.js"), "window.ADMIN_CONFIG = " + JSON.stringify({ url: c.url, pin: c.pin }) + ";"); console.log("baked local-config.json"); } catch (e) {}

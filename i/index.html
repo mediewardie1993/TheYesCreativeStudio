@@ -218,14 +218,14 @@
   /* ring: a real filmed clip, scrubbed by the finger — swipe right slides it on, swipe left backs it off */
   .ring-vid { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: var(--ivory); }
 
-  /* knot */
-  .rib { fill: var(--gold); } .ribd { fill: var(--gold-deep); } .ribl { fill: none; stroke: var(--gold); stroke-width: 15; }
-  .kl, .kr, .kloops, .kn, .kt1, .kt2 { transform-box: fill-box; transform-origin: center; transition: transform .12s linear; }
-  .kl, .kr { transition: transform 1s ease-in, opacity 1s; }
-  .easing .kloops, .easing .kn, .easing .kt1, .easing .kt2 { transition: transform .5s ease; }
-  .fall .kl { transform: translate(-330px, 190px) rotate(-30deg); opacity: 0; }
-  .fall .kr { transform: translate(330px, 190px) rotate(30deg); opacity: 0; }
-  .fall .kloops, .fall .kn, .fall .kt1, .fall .kt2 { opacity: 0; transition: opacity .5s; }
+  /* knot: a filmed gift box — the ribbon unties, the lid opens, and the card inside gets the couple's names */
+  .knot-vid { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: var(--ivory); }
+  .knot-vid.fade { transition: opacity .5s ease; opacity: 0; }
+  .card-names { position: absolute; left: 8%; right: 8%; top: 43%; height: 27%; display: flex; align-items: center; justify-content: center;
+    text-align: center; font-family: "Great Vibes", cursive; font-weight: 400; color: #eafbee; font-size: clamp(20px, 7vw, 34px); line-height: 1.1;
+    opacity: 0; transform: scale(.86); transition: opacity 1s cubic-bezier(.2,.7,.3,1), transform 1s cubic-bezier(.2,.7,.3,1); }
+  .card-names.show { opacity: 1; transform: none; }
+  .card-names .amp { font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-size: .6em; }
 
   /* curtains: a real filmed velvet curtain (green-screened), keyed transparent live via the SVG filter above */
   .cur-back { position: absolute; inset: 0; background: var(--ivory); }
@@ -746,13 +746,6 @@
   };
   const hintEl = t => '<p class="op-hint">' + t + "</p>";
 
-  const KNOT_SVG = '<svg viewBox="0 0 300 520" preserveAspectRatio="xMidYMid meet">'
-    + '<rect class="rib kl" x="-60" y="232" width="210" height="36"/><rect class="rib kr" x="150" y="232" width="210" height="36"/>'
-    + '<path class="rib kt1" d="M146 262 Q118 330 92 410 L116 400 L128 422 Q142 340 158 270 Z"/>'
-    + '<path class="rib kt2" d="M154 262 Q182 330 208 410 L184 400 L172 422 Q158 340 142 270 Z"/>'
-    + '<g class="kloops"><ellipse class="ribl" cx="108" cy="240" rx="38" ry="22" transform="rotate(-18 108 240)"/><ellipse class="ribl" cx="192" cy="240" rx="38" ry="22" transform="rotate(18 192 240)"/></g>'
-    + '<circle class="ribd kn" cx="150" cy="250" r="19"/></svg>';
-
   const OPEN = {
     envelope(el, done) {
       el.innerHTML = '<div class="op-bg"></div><div class="env"><div class="env-card"><small></small><b></b><i></i></div><div class="env-front"></div><div class="env-flap"></div><button class="env-seal" type="button" aria-label="Open the envelope">♥</button></div>' + hintEl("tap the seal to open");
@@ -790,26 +783,37 @@
         if (progress > .9) finish(); else tweenTo(0, 320);
       });
     },
+    // A filmed gift box: tap to untie the ribbon and lift the lid; the couple's names flash onto the card inside just before the fade.
     knot(el, done) {
-      el.innerHTML = '<div class="op-bg"></div>' + KNOT_SVG + hintEl("pull the ribbon to untie the knot");
-      const q = s => el.querySelector(s), loops = q(".kloops"), kn = q(".kn"), t1 = q(".kt1"), t2 = q(".kt2");
-      let p = 0, fin = false;
-      const set = v => {
-        p = v;
-        loops.style.transform = "scale(" + (1 - v * .85) + ")";
-        kn.style.transform = "scale(" + (1 - v * .7) + ") rotate(" + v * 120 + "deg)";
-        t1.style.transform = "translate(" + -v * 60 + "px," + v * 24 + "px) rotate(" + -v * 20 + "deg)";
-        t2.style.transform = "translate(" + v * 60 + "px," + v * 24 + "px) rotate(" + v * 20 + "deg)";
+      el.innerHTML = "";
+      const names = document.createElement("div"); names.className = "card-names";
+      const s1 = document.createElement("span"); s1.textContent = (C.couple && C.couple.one) || "";
+      const amp = document.createElement("span"); amp.className = "amp"; amp.textContent = "&";
+      const s2 = document.createElement("span"); s2.textContent = (C.couple && C.couple.two) || "";
+      names.append(s1, document.createTextNode(" "), amp, document.createTextNode(" "), s2);
+      const v = document.createElement("video"); v.className = "knot-vid"; v.muted = true; v.playsInline = true; v.preload = "auto";
+      const source = document.createElement("source"); source.src = "knot-open.mp4"; source.type = "video/mp4"; v.appendChild(source);
+      el.append(v, names);
+      el.insertAdjacentHTML("beforeend", hintEl("tap to untie the ribbon"));
+      let fin = false, ended = false;
+      const finish = () => {
+        if (ended) return; ended = true;
+        setTimeout(() => { v.classList.add("fade"); names.classList.remove("show"); }, 900);
+        setTimeout(done, 1400);
       };
-      const finish = () => { fin = true; el.classList.add("busy"); set(1); el.classList.add("fall"); setTimeout(done, 1100); };
-      dragOn(el, dx => {
+      const begin = () => {
         if (fin) return;
-        el.classList.remove("easing"); set(Math.min(1, Math.abs(dx) / (el.clientWidth * .3)));
-        if (p >= 1) finish();
-      }, tap => {
-        if (fin) return;
-        if (tap) finish(); else { el.classList.add("easing"); set(0); }
-      });
+        fin = true; el.classList.add("busy");
+        const dur = isFinite(v.duration) && v.duration > 0 ? v.duration : 6;
+        setTimeout(() => names.classList.add("show"), dur * .82 * 1000);
+        const p = v.play();
+        if (p && p.catch) p.catch(finish);
+        setTimeout(finish, dur * 1000 + 1000);
+      };
+      v.addEventListener("ended", finish);
+      v.addEventListener("error", finish);
+      document.addEventListener("visibilitychange", () => { if (fin && !ended && !document.hidden && v.paused) v.play().catch(() => {}); });
+      dragOn(el, () => {}, () => begin());
     },
     // revealFrac: how far into the clip (0–1) the green area is open enough to flash the names in.
     curtains(el, done) { playKeyedVideo(el, "curtain-open.mp4", done, "tap to draw the curtains", 4000, .5); },
