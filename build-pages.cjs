@@ -16,10 +16,24 @@ const shim = `<script>
       return function () {
         var args = [].slice.call(arguments);
         if (fn === "getAppUrl") { if (ok) ok(location.href.split(/[?#]/)[0]); return; }
-        fetch(API, { method: "POST", body: JSON.stringify({ fn: fn, args: args }) })
-          .then(function (r) { return r.json(); })
-          .then(function (j) { if (j.ok) { if (ok) ok(j.data); } else if (bad) bad(new Error(j.error || "Something went wrong.")); })
-          .catch(function () { if (bad) bad(new Error("Network problem. Please check your connection and try again.")); });
+        // Google's Apps Script redirect occasionally bounces a fresh cross-origin call (not a real network problem) — a couple of quiet retries clears it.
+        var attempt = 0;
+        function go() {
+          attempt++;
+          fetch(API, { method: "POST", body: JSON.stringify({ fn: fn, args: args }) })
+            .then(function (r) { if (!r.ok && attempt < 3) throw 0; return r.json(); })
+            .then(function (j) {
+              if (j && j.ok) { if (ok) ok(j.data); return; }
+              if (attempt < 3) return retry();
+              if (bad) bad(new Error((j && j.error) || "Something went wrong."));
+            })
+            .catch(function () {
+              if (attempt < 3) return retry();
+              if (bad) bad(new Error("Google's server had a hiccup. Please try again."));
+            });
+        }
+        function retry() { setTimeout(go, 700 * attempt); }
+        go();
       };
     } });
   }
