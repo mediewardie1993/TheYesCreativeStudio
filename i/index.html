@@ -214,23 +214,9 @@
   .env.open .env-seal { opacity: 0; transform: scale(.4); }
   .env.open ~ .op-hint { opacity: 0; }
 
-  /* veil */
-  .veil { position: absolute; inset: 0; z-index: 2; cursor: grab; will-change: transform;
-    background: radial-gradient(rgba(255,255,255,.85) 1px, transparent 1.6px) 0 0 / 7px 7px, linear-gradient(180deg, rgba(255,255,255,.74), rgba(255,255,255,.5) 60%, rgba(255,255,255,.72));
-    backdrop-filter: blur(9px); -webkit-backdrop-filter: blur(9px); }
-  .veil::after { content: ""; position: absolute; left: 0; right: 0; bottom: -15px; height: 16px; background: radial-gradient(circle at 10px 0, rgba(255,255,255,.85) 9px, transparent 10px) 0 0 / 20px 16px repeat-x; }
-  .veil.snap { transition: transform .9s cubic-bezier(.3,.7,.2,1), opacity .9s; }
-  .veil.back { transition: transform .5s ease, opacity .5s; }
 
-  /* ring */
-  .skin1 { stop-color: #ecbfa2; } .skin2 { stop-color: #f6d6bf; } .skin3 { stop-color: #e3b193; }
-  .rg { transition: none; } .rg.snap { transition: transform .6s cubic-bezier(.3,.8,.3,1); }
-  .rband { fill: none; stroke: var(--gold); stroke-width: 7; }
-  .rgem { fill: #eef8ff; stroke: #8fb5d6; stroke-width: 1.5; }
-  .burst { fill: none; stroke: var(--gold-soft); stroke-width: 3; opacity: 0; transform-box: fill-box; transform-origin: center; }
-  .worn .burst { animation: burst 1.2s ease-out; }
-  .worn .rg { filter: drop-shadow(0 0 7px var(--gold)); }
-  @keyframes burst { 0% { transform: scale(.2); opacity: .9; } 100% { transform: scale(3.4); opacity: 0; } }
+  /* ring: a real filmed clip, scrubbed by the finger — swipe right slides it on, swipe left backs it off */
+  .ring-vid { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: var(--ivory); }
 
   /* knot */
   .rib { fill: var(--gold); } .ribd { fill: var(--gold-deep); } .ribl { fill: none; stroke: var(--gold); stroke-width: 15; }
@@ -754,12 +740,6 @@
   };
   const hintEl = t => '<p class="op-hint">' + t + "</p>";
 
-  const RING_SVG = '<svg viewBox="0 0 300 520" preserveAspectRatio="xMidYMid meet"><defs><linearGradient id="skin" x1="0" x2="1"><stop offset="0" class="skin1"/><stop offset=".5" class="skin2"/><stop offset="1" class="skin3"/></linearGradient></defs>'
-    + '<path d="M120 520 V150 Q120 106 150 106 Q180 106 180 150 V520 Z" fill="url(#skin)"/>'
-    + '<path d="M133 132 Q150 108 167 132 Q167 156 150 158 Q133 156 133 132 Z" fill="#fbe7dc" opacity=".9"/>'
-    + '<path d="M128 196 H172 M131 203 H169 M128 372 H172 M131 379 H169" stroke="#d29c7d" stroke-width="1.6" fill="none" opacity=".7"/>'
-    + '<circle class="burst" cx="150" cy="262" r="40"/>'
-    + '<g class="rg"><ellipse class="rband" rx="31" ry="11"/><path class="rgem" d="M-9 -12 L0 -31 L9 -12 L4 -6 L-4 -6 Z"/></g></svg>';
   const KNOT_SVG = '<svg viewBox="0 0 300 520" preserveAspectRatio="xMidYMid meet">'
     + '<rect class="rib kl" x="-60" y="232" width="210" height="36"/><rect class="rib kr" x="150" y="232" width="210" height="36"/>'
     + '<path class="rib kt1" d="M146 262 Q118 330 92 410 L116 400 L128 422 Q142 340 158 270 Z"/>'
@@ -779,42 +759,29 @@
         setTimeout(done, 2300);
       });
     },
-    veil(el, done) {
-      el.innerHTML = '<div class="veil"></div>' + hintEl("lift the veil");
-      const v = el.firstChild; let up = 0, fin = false;
-      dragOn(el, (dx, dy) => {
-        if (fin) return;
-        up = Math.max(0, -dy); v.classList.remove("back");
-        v.style.transform = "translateY(" + -up + "px) skewX(" + dx / 40 + "deg)";
-        v.style.opacity = String(1 - Math.min(1, up / el.clientHeight) * .5);
-      }, tap => {
-        if (fin) return;
-        if (tap || up > el.clientHeight * .33) {
-          fin = true; el.classList.add("busy"); v.classList.add("snap");
-          v.style.transform = "translateY(-" + (el.clientHeight + 40) + "px) skewX(6deg)"; v.style.opacity = "0";
-          setTimeout(done, 750);
-        } else { v.classList.add("back"); v.style.transform = ""; v.style.opacity = ""; up = 0; }
-      });
-    },
+    // A filmed clip, scrubbed frame-by-frame by the finger: swipe right slides the ring on, swipe left backs it off —
+      // the guest feels like they're the one placing it, rather than just watching a clip play.
     ring(el, done) {
-      el.innerHTML = '<div class="op-bg"></div>' + RING_SVG + hintEl("slide the ring onto the finger");
-      const svg = el.querySelector("svg"), g = svg.querySelector(".rg");
-      const S = { x: 66, y: 452 }, T = { x: 150, y: 262 };
-      let x = S.x, y = S.y, sx = null, sy = 0, fin = false;
-      const put = (a, b) => { x = a; y = b; g.style.transform = "translate(" + a + "px," + b + "px)"; };
-      put(S.x, S.y);
-      const finish = () => { fin = true; el.classList.add("busy"); g.classList.add("snap"); put(T.x, T.y); svg.classList.add("worn"); setTimeout(done, 1500); };
-      dragOn(el, (dx, dy) => {
+      el.innerHTML = '<video class="ring-vid" muted playsinline preload="auto"><source src="ring-on.mp4" type="video/mp4"></video>' + hintEl("swipe to slide the ring on");
+      const v = el.querySelector("video");
+      let dur = 4, fin = false, progress = 0, raf = null;
+      const setP = p => { progress = Math.max(0, Math.min(1, p)); try { v.currentTime = progress * dur; } catch (e) {} };
+      const ready = () => { if (isFinite(v.duration) && v.duration > 0) dur = v.duration; setP(0); };
+      if (v.readyState >= 1) ready(); else v.addEventListener("loadedmetadata", ready, { once: true });
+      const tweenTo = (target, ms, after) => {
+        if (raf) cancelAnimationFrame(raf);
+        const from = progress, t0 = performance.now();
+        const step = now => {
+          const k = Math.min(1, (now - t0) / ms), e = 1 - Math.pow(1 - k, 3);
+          setP(from + (target - from) * e);
+          if (k < 1) raf = requestAnimationFrame(step); else if (after) after();
+        };
+        raf = requestAnimationFrame(step);
+      };
+      const finish = () => { if (fin) return; fin = true; el.classList.add("busy"); tweenTo(1, 200, () => setTimeout(done, 550)); };
+      dragOn(el, dx => { if (fin) return; setP(dx / (el.clientWidth * .68)); }, () => {
         if (fin) return;
-        if (sx === null) { sx = x; sy = y; }
-        const k = svg.getScreenCTM().a || 1;
-        g.classList.remove("snap"); put(sx + dx / k, sy + dy / k);
-        if (Math.hypot(x - T.x, y - T.y) < 22) finish();
-      }, tap => {
-        if (fin) return;
-        sx = null;
-        if (tap || Math.hypot(x - T.x, y - T.y) < 60) finish();
-        else { g.classList.add("snap"); put(S.x, S.y); }
+        if (progress > .9) finish(); else tweenTo(0, 320);
       });
     },
     knot(el, done) {
@@ -862,7 +829,7 @@
     }
   };
 
-  // kind: scratch | envelope | veil | ring | knot | curtains | none (already open)
+  // kind: scratch | envelope | ring | knot | curtains | none (already open)
   function startOpening(kind) {
     const el = $("opening");
     if (kind !== "none" && kind !== "scratch" && !OPEN[kind]) kind = "scratch";
@@ -1307,7 +1274,7 @@
     if (!code) return;
     msg.className = "msg"; msg.textContent = "Checking…"; go.disabled = true;
     try {
-      // Offline preview (not hosted on Apps Script): any code works; ?opening=veil&scheme=navy&cfg=<encoded JSON> pick the look and content.
+      // Offline preview (not hosted on Apps Script): any code works; ?opening=envelope&scheme=navy&cfg=<encoded JSON> pick the look and content.
       const ev = live ? await run("enterEvent", code) : { opening: qs.get("opening") || "scratch", scheme: qs.get("scheme") || "blush", limit: Number(qs.get("limit")) || 0, cfg: (() => { try { return JSON.parse(qs.get("cfg") || "{}"); } catch (e) { return {}; } })() };
       CODE = code;
       if (ev.cfg) merge(C, ev.cfg);
