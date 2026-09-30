@@ -763,9 +763,24 @@
     ring(el, done) {
       el.innerHTML = '<video class="ring-vid" muted playsinline preload="auto"><source src="ring-on.mp4" type="video/mp4"></video>' + hintEl("swipe to slide the ring on");
       const v = el.querySelector("video");
-      let dur = 4, fin = false, progress = 0, raf = null;
-      const setP = p => { progress = Math.max(0, Math.min(1, p)); try { v.currentTime = progress * dur; } catch (e) {} };
-      const ready = () => { if (isFinite(v.duration) && v.duration > 0) dur = v.duration; setP(0); };
+      let dur = 4, fin = false, progress = 0, raf = null, seeking = false, pendingP = null;
+      // Only ever one seek in flight — assigning currentTime faster than the phone can decode just queues a backlog
+      // that visibly lags behind the finger. This always jumps to the latest position once the last seek lands.
+      const applySeek = () => {
+        if (pendingP === null) return;
+        progress = pendingP; pendingP = null; seeking = true;
+        try { v.currentTime = progress * dur; } catch (e) { seeking = false; }
+      };
+      v.addEventListener("seeked", () => { seeking = false; applySeek(); });
+      const setP = p => { pendingP = Math.max(0, Math.min(1, p)); if (!seeking) applySeek(); };
+      // iOS Safari won't paint anything from currentTime alone until the video has actually played once —
+      // a silent play-then-pause "primes" the decoder so the first real seek isn't blank.
+      const prime = () => {
+        const rewind = () => { v.pause(); try { v.currentTime = 0; } catch (e) {} };
+        const p = v.play();
+        if (p && p.then) p.then(rewind).catch(() => {}); else rewind();
+      };
+      const ready = () => { if (isFinite(v.duration) && v.duration > 0) dur = v.duration; prime(); };
       if (v.readyState >= 1) ready(); else v.addEventListener("loadedmetadata", ready, { once: true });
       const tweenTo = (target, ms, after) => {
         if (raf) cancelAnimationFrame(raf);
