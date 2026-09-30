@@ -221,19 +221,20 @@
   /* knot: a filmed gift box — the ribbon unties, the lid opens, and the card inside gets the couple's names */
   .knot-vid { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: var(--ivory); }
   .knot-vid.fade { transition: opacity .5s ease; opacity: 0; }
-  .card-names { position: absolute; left: 8%; right: 8%; top: 43%; height: 27%; display: flex; align-items: center; justify-content: center;
-    text-align: center; font-family: "Great Vibes", cursive; font-weight: 400; color: #eafbee; font-size: clamp(20px, 7vw, 34px); line-height: 1.1;
-    opacity: 0; transform: scale(.86); transition: opacity 1s cubic-bezier(.2,.7,.3,1), transform 1s cubic-bezier(.2,.7,.3,1); }
-  .card-names.show { opacity: 1; transform: none; }
-  .card-names .amp { font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-size: .6em; }
+  .card-photo { position: absolute; left: 12%; right: 12%; top: 45%; height: 23%; object-fit: cover; border-radius: 3px;
+    box-shadow: 0 0 0 6px #fff, 0 8px 20px -8px rgba(0,0,0,.5);
+    opacity: 0; transform: scale(.86) rotate(-2deg); transition: opacity 1s cubic-bezier(.2,.7,.3,1), transform 1s cubic-bezier(.2,.7,.3,1); }
+  .card-photo.show { opacity: 1; transform: none; }
 
   /* curtains: a real filmed velvet curtain (green-screened), keyed transparent live via the SVG filter above */
   .cur-back { position: absolute; inset: 0; background: var(--ivory); }
-  .reveal-names { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 10%;
-    font-family: "Great Vibes", cursive; font-weight: 400; color: var(--gold-deep); font-size: clamp(32px, 11vw, 58px); line-height: 1.15;
-    opacity: 0; transform: scale(.86); transition: opacity 1.1s cubic-bezier(.2,.7,.3,1), transform 1.1s cubic-bezier(.2,.7,.3,1); }
-  .reveal-names.show { opacity: 1; transform: none; }
-  .reveal-names .amp { color: var(--gold); font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-size: .55em; }
+  .reveal-photo { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 1.1s cubic-bezier(.2,.7,.3,1); }
+  .reveal-photo.show { opacity: 1; }
+  .reveal-photo img { width: clamp(140px, 42vw, 220px); height: clamp(140px, 42vw, 220px); object-fit: cover; border-radius: 50%;
+    box-shadow: 0 0 0 5px #fff, 0 0 0 7px var(--gold-soft), 0 14px 30px -14px rgba(0,0,0,.5);
+    transform: scale(.86); transition: transform 1.1s cubic-bezier(.2,.7,.3,1); }
+  .reveal-photo.show img { transform: none; }
   /* shared by every filmed opening that keys green out live (curtain, church door) */
   .keyed-vid { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: url(#curtain-chroma); background: var(--ivory); }
   .keyed-vid.fade { transition: opacity .5s ease; opacity: 0; }
@@ -798,29 +799,25 @@
         if (progress > .9) finish(); else tweenTo(0, 320);
       });
     },
-    // A filmed gift box: tap to untie the ribbon and lift the lid; the couple's names flash onto the card inside just before the fade.
+    // A filmed gift box: tap to untie the ribbon and lift the lid; the couple's photo flashes onto the card inside just before the fade.
     knot(el, done) {
       el.innerHTML = "";
-      const names = document.createElement("div"); names.className = "card-names";
-      const s1 = document.createElement("span"); s1.textContent = (C.couple && C.couple.one) || "";
-      const amp = document.createElement("span"); amp.className = "amp"; amp.textContent = "&";
-      const s2 = document.createElement("span"); s2.textContent = (C.couple && C.couple.two) || "";
-      names.append(s1, document.createTextNode(" "), amp, document.createTextNode(" "), s2);
+      const photo = document.createElement("img"); photo.className = "card-photo"; photo.alt = ""; photo.src = C.photo || "";
       const v = document.createElement("video"); v.className = "knot-vid"; v.muted = true; v.playsInline = true; v.preload = "auto";
       const source = document.createElement("source"); source.src = "knot-open.mp4"; source.type = "video/mp4"; v.appendChild(source);
-      el.append(v, names);
+      el.append(v, photo);
       el.insertAdjacentHTML("beforeend", hintEl("tap to untie the ribbon"));
       let fin = false, ended = false;
       const finish = () => {
         if (ended) return; ended = true;
-        setTimeout(() => { v.classList.add("fade"); names.classList.remove("show"); }, 900);
+        setTimeout(() => { v.classList.add("fade"); photo.classList.remove("show"); }, 900);
         setTimeout(done, 1400);
       };
       const begin = () => {
         if (fin) return;
         fin = true; el.classList.add("busy");
         const dur = isFinite(v.duration) && v.duration > 0 ? v.duration : 6;
-        setTimeout(() => names.classList.add("show"), dur * .82 * 1000);
+        setTimeout(() => photo.classList.add("show"), dur * .82 * 1000);
         const p = v.play();
         if (p && p.catch) p.catch(finish);
         setTimeout(finish, dur * 1000 + 1000);
@@ -839,11 +836,8 @@
   function playKeyedVideo(el, src, done, hint, fallbackMs, revealFrac) {
     el.innerHTML = "";
     const back = document.createElement("div"); back.className = "cur-back";
-    const names = document.createElement("div"); names.className = "reveal-names";
-    const s1 = document.createElement("span"); s1.textContent = (C.couple && C.couple.one) || "";
-    const amp = document.createElement("span"); amp.className = "amp"; amp.textContent = "&";
-    const s2 = document.createElement("span"); s2.textContent = (C.couple && C.couple.two) || "";
-    names.append(s1, document.createTextNode(" "), amp, document.createTextNode(" "), s2);
+    const names = document.createElement("div"); names.className = "reveal-photo";
+    const img = document.createElement("img"); img.alt = ""; img.src = C.photo || ""; names.appendChild(img);
     back.appendChild(names);
     const v = document.createElement("video"); v.className = "keyed-vid"; v.muted = true; v.playsInline = true; v.preload = "auto";
     const source = document.createElement("source"); source.src = src; source.type = "video/mp4"; v.appendChild(source);
