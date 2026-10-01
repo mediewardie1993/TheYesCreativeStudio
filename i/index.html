@@ -3,25 +3,26 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<meta name="theme-color" content="#fdeef0">
+<meta name="theme-color" content="#f7f3ea">
 <title>Save the Date</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cabin+Sketch:wght@700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Great+Vibes&display=swap" rel="stylesheet">
 <style>
   :root {
-    --ivory: #fdeef0;
-    --paper: #fff7f8;
-    --gold: #d9616f;
-    --gold-deep: #b8434f;
-    --gold-soft: #f2b8bf;
-    --ink: #4a2c31;
-    --muted: #8c6a70;
-    --blush: #e9cfc6;
-    --line: #f3cdd2;
-    --bg1: #fff6f7; --bg2: #f9d9de; --btn1: #ec8a95; --btn2: #d4515f;
-    --f1: #f9c9cf; --f2: #e07a86; --f3: #fde3e6; --f4: #d65f6d; --f5: #f5b3bb;
-    --tint: #fde1e5; --rgb: 217,97,111; --shade: 196,72,86; --dark: 90,40,48;
+    /* neutral ivory until the event's colour scheme arrives (after the code is entered) — setScheme() overrides all of these */
+    --ivory: #f7f3ea;
+    --paper: #fffdf8;
+    --gold: #a08a5e;
+    --gold-deep: #7d6a42;
+    --gold-soft: #d8cdb5;
+    --ink: #3a3630;
+    --muted: #7a746a;
+    --blush: #e9e2d3;
+    --line: #e4dcc9;
+    --bg1: #fffdf8; --bg2: #ece4d2; --btn1: #b9a77f; --btn2: #8f7d55;
+    --f1: #e6dcc3; --f2: #b9a77f; --f3: #f3ecdc; --f4: #9a8761; --f5: #d8cdb5;
+    --tint: #f3ecdc; --rgb: 160,138,94; --shade: 125,106,66; --dark: 58,54,48;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
@@ -493,7 +494,7 @@
   const VARS = ["ivory","paper","gold","gold-deep","gold-soft","ink","muted","line","bg1","bg2","btn1","btn2","f1","f2","f3","f4","f5","tint","rgb","shade","dark"];
   const SCHEMES = {
     blush:     { v: ["#fdeef0","#fff7f8","#d9616f","#b8434f","#f2b8bf","#4a2c31","#8c6a70","#f3cdd2","#fff6f7","#f9d9de","#ec8a95","#d4515f","#f9c9cf","#e07a86","#fde3e6","#d65f6d","#f5b3bb","#fde1e5","217,97,111","196,72,86","90,40,48"], p: ["#f9c9cf","#f4a7b1","#fff1f3","#e8707d","#fbd6db"] },
-    burgundy:  { v: ["#f6e9e6","#fdf6f3","#9b2c3f","#741c2e","#d9a1aa","#3a1219","#7d5a60","#ecc9cd","#fbf1ee","#ead0cf","#b8465a","#7e1f33","#e7b4bb","#a13a4d","#f6dfe2","#8a2b3f","#d99aa5","#f6d9dd","155,44,63","126,31,51","58,18,25"], p: ["#7e1f33","#a13a4d","#e7b4bb","#c9707f","#f6dfe2"] },
+    burgundy:  { v: ["#4a1521","#5a1d2b","#e7b4bb","#f3cdd2","#a35a68","#f8e9e6","#d9a1aa","#7d2f40","#6b2233","#2a0a11","#b8465a","#8a2b3f","#e7b4bb","#a13a4d","#f6dfe2","#8a2b3f","#d99aa5","#6a2535","231,180,187","20,0,4","20,0,4"], p: ["#7e1f33","#a13a4d","#e7b4bb","#c9707f","#f6dfe2"] },
     sage:      { v: ["#eef2e8","#f9fbf6","#6f8f6a","#4d6b49","#b9cdb4","#26332a","#5f7263","#d3dfcc","#f6f9f1","#d9e5d3","#8fb08a","#557a52","#cfe0cb","#7ea079","#eef5ea","#5f8559","#b5cdb0","#e0ecdb","111,143,106","85,122,82","38,51,42"], p: ["#cfe0cb","#a5c2a0","#f3f8ef","#7ea079","#dcebd8"] },
     navy:      { v: ["#e9edf5","#f7f9fc","#b48a3c","#8a6520","#dcc48f","#16233d","#56647f","#cfd7e6","#f2f5fa","#cdd8ea","#c9a24d","#96701f","#f1e2b8","#c49a45","#fbf3da","#a67c2c","#e3cd94","#f3ead2","180,138,60","138,101,32","22,35,61"], p: ["#f1e2b8","#dcc48f","#fbf3da","#c49a45","#8ea3c9"] },
     lavender:  { v: ["#f1ecf7","#faf8fd","#8a6cb5","#64468f","#cbb9e4","#2e2340","#6e6285","#ddd3ec","#f7f3fb","#ddd0ee","#a68ccc","#6d4f9b","#dccdef","#9678c2","#f3ecfa","#7c5cad","#c5b1e0","#eadff5","138,108,181","109,79,155","46,35,64"], p: ["#dccdef","#bfa8dd","#f6f0fc","#9678c2","#e9dff6"] },
