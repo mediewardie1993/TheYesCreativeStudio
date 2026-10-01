@@ -137,6 +137,20 @@
   .table-no span { font-size: 10px; letter-spacing: .3em; text-transform: uppercase; color: var(--gold-deep); font-weight: 600; }
   .table-no b { font-size: 34px; line-height: 1; font-weight: 600; }
   .venue a.btn { display: inline-block; text-decoration: none; margin-top: 14px; }
+  .venue .vmap { display: block; width: 100%; height: 190px; border: 1px solid var(--line); border-radius: 10px; margin-top: 14px; }
+  /* countdown to the event — every .cd box fills in once the event has a date & time (C.eventAt) */
+  .cd { display: flex; justify-content: center; gap: 8px; margin-top: 12px; }
+  .cd[hidden] { display: none; }
+  .cd div { min-width: 58px; padding: 8px 4px 6px; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; }
+  .cd b { display: block; font-size: 26px; line-height: 1; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .cd span { display: block; font-size: 9px; letter-spacing: .22em; text-transform: uppercase; color: var(--gold-deep); font-weight: 600; margin-top: 4px; }
+  .cd.done { font-family: "Great Vibes", cursive; font-size: 26px; color: var(--gold-deep); }
+  footer.has-cd { min-height: 146px; }
+  footer .cd { gap: 5px; margin: 5px 0 1px; }
+  footer .cd div { min-width: 44px; padding: 4px 2px 3px; border-radius: 8px; }
+  footer .cd b { font-size: 17px; }
+  footer .cd span { font-size: 7.5px; letter-spacing: .14em; margin-top: 2px; }
+  footer .cd.done { font-size: 22px; }
   .demo { position: fixed; top: max(16px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); font-size: 12px; font-style: italic; color: var(--muted); background: rgba(251,247,240,.9); padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); z-index: 3; white-space: nowrap; }
 
   /* ---------- Promo footer ---------- */
@@ -340,6 +354,7 @@
     <div class="details">
       <div class="names"><span data-t="couple.one"></span> <span class="amp">&amp;</span> <span data-t="couple.two"></span></div>
       <div class="when" data-t="dateLine"></div>
+      <div class="cd" hidden></div>
       <button class="btn pulse" id="proceed" type="button" data-t="proceedLabel"></button>
     </div>
   </footer>
@@ -351,6 +366,7 @@
     <div class="eyebrow" data-t="rsvp.eyebrow"></div>
     <h2><span data-t="couple.one"></span> <span style="color:var(--gold)">&amp;</span> <span data-t="couple.two"></span></h2>
     <p class="sub"><span data-t="dateLine"></span><br><span data-t="place"></span></p>
+    <div class="cd" hidden></div>
     <div class="rule"></div>
 
     <!-- 1. who are you -->
@@ -397,6 +413,7 @@
         <p data-t="location.time"></p>
         <p data-t="location.dress"></p>
         <div class="table-no" id="table-box"><span>Table</span><b id="table-no"></b></div>
+        <iframe class="vmap" id="vmap" title="Map" loading="lazy" referrerpolicy="no-referrer" style="display:none"></iframe>
         <a class="btn" id="map" target="_blank" rel="noopener">Open in Maps</a>
       </div>
       <div id="msg-done"></div>
@@ -487,6 +504,29 @@
     document.querySelectorAll(".crest").forEach(el => { el.style.backgroundImage = crest ? `url("${crest}")` : "none"; });
     $("photo").classList.toggle("bw", !!C.blackAndWhite);
     $("proceed").hidden = !(C.rsvp && C.rsvp.enabled);
+    countdown();
+  }
+  // Ticks down to C.eventAt (an ISO date-time with the venue's UTC offset, so guests abroad count to the same moment).
+  let cdTimer = null;
+  function countdown() {
+    clearInterval(cdTimer);
+    const boxes = document.querySelectorAll(".cd"), foot = document.querySelector("#stage footer"), t = Date.parse(C.eventAt || "");
+    const tick = () => {
+      const left = t - Date.now(), done = left <= 0;
+      let html = "";
+      if (!t) html = "";
+      else if (done) html = left > -864e5 ? "Today is the day!" : "";
+      else {
+        const s = Math.floor(left / 1000);
+        html = [[Math.floor(s / 86400), "days"], [Math.floor(s % 86400 / 3600), "hours"], [Math.floor(s % 3600 / 60), "mins"], [s % 60, "secs"]]
+          .map(u => "<div><b>" + u[0] + "</b><span>" + u[1] + "</span></div>").join("");
+      }
+      boxes.forEach(b => { b.hidden = !html; b.classList.toggle("done", done); if (b.innerHTML !== html) b.innerHTML = html; });
+      foot.classList.toggle("has-cd", !!html);
+      if (!html) clearInterval(cdTimer);
+    };
+    tick();
+    if (t) cdTimer = setInterval(tick, 1000);
   }
   fill();
 
@@ -1026,8 +1066,13 @@
         const table = res && res.table;
         $("table-box").style.display = L.showTable && table ? "" : "none";
         $("table-no").textContent = table || "";
-        $("map").style.display = L.mapUrl ? "" : "none";
-        if (L.mapUrl) $("map").href = L.mapUrl;
+        // A tagged venue carries real coordinates: show the map itself, and build the Maps link from them if none was typed.
+        const lat = Number(L.lat), lng = Number(L.lng), tagged = L.lat != null && L.lat !== "" && isFinite(lat) && isFinite(lng);
+        const mapUrl = L.mapUrl || (tagged ? "https://www.google.com/maps/search/?api=1&query=" + lat + "," + lng : "");
+        $("vmap").style.display = tagged ? "" : "none";
+        if (tagged) $("vmap").src = "https://maps.google.com/maps?q=" + lat + "," + lng + "&z=15&output=embed";
+        $("map").style.display = mapUrl ? "" : "none";
+        if (mapUrl) $("map").href = mapUrl;
       }
       saveReg({ id: res && res.id, first: current.first, last: current.typedLast, attending });
       $("next-wrap").style.display = M.enabled ? "" : "none";
