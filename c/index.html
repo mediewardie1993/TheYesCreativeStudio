@@ -74,7 +74,14 @@ function load(){
   google.script.run.withSuccessHandler(function(d){D=d;draw()}).withFailureHandler(function(e){$('app').innerHTML='<p class="msg">'+esc(e.message||'This link is not valid.')+'</p>'}).couple_data(KEY);
 }
 function draw(){
-  document.documentElement.style.setProperty('--a',ACC[D.scheme]||'#b8434f');
+  var acc=ACC[D.scheme]||'#b8434f';
+  if(D.scheme==='custom'&&/^#[0-9a-f]{6}$/i.test(D.accent||'')){
+    // the couple's own main colour: darkened if it is too pale to carry the white header text
+    var c=[1,3,5].map(function(i){return parseInt(D.accent.slice(i,i+2),16)});
+    for(var n=0;n<6&&(c[0]*299+c[1]*587+c[2]*114)/1000>150;n++)c=c.map(function(x){return x*.82});
+    acc='rgb('+c.map(Math.round).join(',')+')';
+  }
+  document.documentElement.style.setProperty('--a',acc);
   $('names').textContent=(D.one&&D.two)?D.one+' & '+D.two:D.event;$('when').textContent=D.dateLine;document.title=D.event;
   var tabs=[['yes','Coming ('+D.yes.length+')'],['no','Declined ('+D.no.length+')'],['wait','Waiting ('+D.wait.length+')'],['msgs','Messages ('+(D.messages||[]).length+')'],['pics','Photos ('+D.gallery.length+')']];
   var h='<div class="stats"><div class="stat"><b>'+D.heads+'</b><span>guests coming</span></div><div class="stat"><b>'+D.no.length+'</b><span>declined</span></div><div class="stat"><b>'+D.wait.length+'</b><span>not replied yet</span></div></div>';

@@ -541,8 +541,31 @@
     champagne: { v: ["#f7efe0","#fffaf0","#b8925a","#8c6a36","#e1cba4","#43341f","#8a7656","#eadcc0","#fdf7ea","#ecdcbb","#d1ad74","#a17c43","#f2e0bd","#c9a266","#fbf1d9","#b18a4e","#e5cfa3","#f6e9cc","184,146,90","161,124,67","67,52,31"], p: ["#f2e0bd","#e1cba4","#fff6e2","#c9a266","#ead9b4"] }
   };
   let PETALS = SCHEMES.blush.p;
-  function setScheme(name) {
-    const sc = SCHEMES[name] || SCHEMES.blush;
+  // "Choose your colours": the couple picks three — a background, a main colour (titles, buttons) and a second colour
+  // (photo frame, borders, petals). Every other shade is worked out from those, with text kept readable on light or dark backgrounds.
+  function customScheme(colors) {
+    const ok = h => /^#[0-9a-f]{6}$/i.test(h || "");
+    if (!colors || !ok(colors.bg) || !ok(colors.accent)) return null;
+    const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+    const hex = c => "#" + c.map(x => Math.round(Math.max(0, Math.min(255, x))).toString(16).padStart(2, "0")).join("");
+    const mix = (a, b, t) => a.map((x, i) => x + (b[i] - x) * t);
+    const lum = c => { const [r, g, b] = c.map(x => { x /= 255; return x <= .03928 ? x / 12.92 : Math.pow((x + .055) / 1.055, 2.4); }); return .2126 * r + .7152 * g + .0722 * b; };
+    const contrast = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+    const W = [255, 255, 255], K = [0, 0, 0], B = rgb(colors.bg), A = rgb(colors.accent), T = ok(colors.second) ? rgb(colors.second) : A, dark = lum(B) < .2;
+    const ink = dark ? mix(B, W, .92) : mix(A, K, .78);
+    // the main colour is also used for small text: nudge it toward the text colour until it can be read on the background
+    let gold = A; for (let n = 0; n < 6 && contrast(gold, B) < 3; n++) gold = mix(gold, ink, .3);
+    // buttons carry white text: darken a pale main colour until white shows on it
+    let btn = A; for (let n = 0; n < 6 && contrast(btn, W) < 3; n++) btn = mix(btn, K, .18);
+    const sh = dark ? mix(B, K, .75) : mix(A, K, .25);
+    const v = [B, dark ? mix(B, W, .08) : mix(B, W, .6), gold, dark ? mix(gold, W, .25) : mix(gold, K, .22), mix(T, B, .4), ink, mix(ink, B, .38), mix(T, B, .7),
+      dark ? mix(B, W, .1) : mix(B, W, .5), dark ? mix(B, K, .4) : mix(B, T, .2), mix(btn, W, .14), mix(btn, K, .14),
+      mix(T, W, .6), T, mix(T, W, .8), mix(T, K, .14), mix(T, W, .42), mix(B, T, .22)].map(hex);
+    v.push(gold.map(Math.round).join(","), sh.map(Math.round).join(","), (dark ? mix(B, K, .75) : mix(A, K, .6)).map(Math.round).join(","));
+    return { v: v, p: [mix(T, W, .5), mix(T, W, .2), T, mix(A, W, .6), A].map(hex) };
+  }
+  function setScheme(name, colors) {
+    const sc = (name === "custom" && customScheme(colors)) || SCHEMES[name] || SCHEMES.blush;
     VARS.forEach((k, i) => document.documentElement.style.setProperty("--" + k, sc.v[i]));
     PETALS = sc.p;
     const tc = document.querySelector('meta[name="theme-color"]'); if (tc) tc.content = sc.v[0];
@@ -1382,7 +1405,7 @@
       REG_KEY = "std-reg-v1-" + code.toUpperCase().replace(/\s+/g, "");
       REMEMBER = !!M.rememberDevice;
       if (!REMEMBER) { try { localStorage.removeItem(REG_KEY); } catch (e) {} }
-      setScheme(ev.scheme); fill(); drawQr(); mountMsg("msg-done"); mountMsg("msg-cam"); left = MAX_UPLOADS;
+      setScheme(ev.scheme, C.colors); fill(); drawQr(); mountMsg("msg-done"); mountMsg("msg-cam"); left = MAX_UPLOADS;
       msg.textContent = "";
       showScreen("stage");
       const toCam = M.enabled && (pendingPage === "camera" || getReg());
