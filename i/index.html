@@ -982,7 +982,7 @@
     send: (id, l, att, n, note) => run("submitRsvp", CODE, id, l, att, n, note, current.first)
   } : {
     find: async (f, l) => (C.demoGuests || [])
-      .map((g, i) => ({ id: i, first: g.first, last: g.last, seats: g.seats || 1, rsvp: "" }))
+      .map((g, i) => ({ id: i, first: g.first, last: g.last, seats: g.seats || 1, table: g.table || "", rsvp: "" }))
       .filter(g => norm(g.last) === norm(l)),
     send: async (id) => ({ id: id == null ? "demo-" + Date.now() : id, table: id == null ? "" : ((C.demoGuests[id] || {}).table || "") })
   };
@@ -1056,7 +1056,7 @@
   function pick(g, typedLast) {
     current = { ...g, typedLast };
     attending = null;
-    $("hello").textContent = `Hi ${g.first}!`;
+    $("hello").textContent = `Welcome ${g.first}!` + (g.table ? ` You are at table ${g.table}.` : "");
     $("prior").textContent = g.rsvp ? `You already replied (${g.rsvp}). You can change it below.` : "";
     const sel = $("seats"); sel.innerHTML = "";
     for (let i = 1; i <= Math.max(1, g.seats); i++) sel.add(new Option(i === 1 ? "Just me" : `${i} guests`, i));
