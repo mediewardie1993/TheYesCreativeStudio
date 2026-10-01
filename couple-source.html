@@ -21,6 +21,12 @@ main{max-width:820px;margin:0 auto;padding:12px 14px 40px}
 .lb .acts{display:flex;gap:8px;margin-top:12px}.lb .acts button{font:600 14px system-ui,sans-serif;padding:9px 16px;border:0;border-radius:9px;background:#fff;color:#2b2226;cursor:pointer}.lb .acts button.del{background:#8a1f2b;color:#fff}.lb .acts button:disabled{opacity:.5}
 .lb .pm{color:#f6d5da;font:13px system-ui,sans-serif;margin:8px 0 0;min-height:16px;text-align:center}
 .hid{margin:22px 0 8px;font:600 13px system-ui,sans-serif;color:#7a6a6e;letter-spacing:.06em;text-transform:uppercase}.gal.off img{opacity:.45}
+.wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.sheet{width:100%;border-collapse:collapse;font:14px system-ui,sans-serif;min-width:620px}.sheet th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#7a6a6e;padding:8px 6px;background:#f7f3ea;border:1px solid #e4dcc9}
+.sheet td{padding:0;border:1px solid #e4dcc9;vertical-align:middle}.sheet input{width:100%;border:0;padding:9px 6px;font:inherit;background:transparent;color:inherit;min-width:54px}.sheet input:focus{outline:2px solid var(--a);outline-offset:-2px;background:#fff}
+.sheet td.c{padding:5px 6px;white-space:nowrap}.sheet td.c b{font:600 14px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.06em}.sheet button{font:600 12px system-ui,sans-serif;padding:4px 8px;border:0;border-radius:7px;background:#ece4d2;color:#3a2a2e;cursor:pointer;margin-left:4px}
+.sheet tr.new td{background:#fbf9f3}.tools{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}.tools button{font:600 13px system-ui,sans-serif;padding:9px 13px;border:0;border-radius:9px;background:var(--a);color:#fff;cursor:pointer}.tools button.g{background:#ece4d2;color:#3a2a2e}
+.note2{font:13px/1.4 system-ui,sans-serif;color:#7a6a6e;margin:0 0 10px}.say{font:13px system-ui,sans-serif;color:#7a6a6e;min-height:18px;margin:8px 2px 0}
 .msg{text-align:center;color:#7a6a6e;padding:30px 10px}.top{text-align:center;margin-top:14px}.top button{font:600 13px system-ui,sans-serif;padding:8px 14px;border:0;border-radius:9px;background:#ece4d2;cursor:pointer}
 </style></head><body>
 <header><h1 id="names">Our RSVPs</h1><div class="when" id="when"></div></header>
@@ -45,10 +51,22 @@ function draw(){
   }
   document.documentElement.style.setProperty('--a',acc);
   $('names').textContent=(D.one&&D.two)?D.one+' & '+D.two:D.event;$('when').textContent=D.dateLine;document.title=D.event;
-  var tabs=[['yes','Coming ('+D.yes.length+')'],['no','Declined ('+D.no.length+')'],['wait','Waiting ('+D.wait.length+')'],['msgs','Messages ('+(D.messages||[]).length+')'],['pics','Photos ('+D.gallery.length+')']];
+  var tabs=[['yes','Coming ('+D.yes.length+')'],['no','Declined ('+D.no.length+')'],['wait','Waiting ('+D.wait.length+')'],['list','Guest list ('+(D.guests||[]).length+')'],['msgs','Messages ('+(D.messages||[]).length+')'],['pics','Photos ('+D.gallery.length+')']];
   var h='<div class="stats"><div class="stat"><b>'+D.heads+'</b><span>guests coming</span></div><div class="stat"><b>'+D.no.length+'</b><span>declined</span></div><div class="stat"><b>'+D.wait.length+'</b><span>not replied yet</span></div></div>';
   h+='<div class="tabs">'+tabs.map(function(t){return '<button data-t="'+t[0]+'" class="'+(TAB===t[0]?'on':'')+'">'+t[1]+'</button>'}).join('')+'</div>';
-  if(TAB==='msgs'){
+  if(TAB==='list'){
+    // The guest list as an editable sheet: type in a cell and it saves when you leave it. Each guest's login code is made by the randomizer.
+    var G=D.guests||[];
+    var cells=function(g){return ['first','last','seats','table'].map(function(f){return '<td><input data-f="'+f+'"'+(f==='seats'?' type="number" min="1" max="20" style="width:64px"':'')+' value="'+esc(g?g[f]:'')+'" placeholder="'+(g?'':{first:'Add a guest…',last:'Last name',seats:'1',table:''}[f])+'"></td>'}).join('')};
+    h+='<div class="tools"><button id="gm">Make codes for guests without one</button><button id="ga" class="g">New codes for everyone</button></div>';
+    h+='<p class="note2">Each guest logs in with <b>'+esc(D.code)+'-</b> followed by their own code, or just taps their personal link. '+(D.codesOnly?'The shared code '+esc(D.code)+' is switched off: only personal codes work.':'The shared code '+esc(D.code)+' still works too.')+'</p>';
+    h+='<div class="card wrap"><table class="sheet"><thead><tr><th>First name</th><th>Last name</th><th>Seats</th><th>Table</th><th>Login code</th><th>Reply</th><th></th></tr></thead><tbody>';
+    h+=G.map(function(g){
+      var st=g.rsvp==='Attending'?'Attending '+g.attending:g.rsvp==='Declined'?'Declined':g.opened?'Opened, no reply':'Not opened';
+      return '<tr data-r="'+g.row+'">'+cells(g)+'<td class="c">'+(g.code?'<b>'+esc(g.code)+'</b><button data-cp="'+esc(g.code)+'">Copy link</button>':'<span style="color:#7a6a6e">none yet</span>')+'<button data-nw title="Give this guest a new code">↻</button></td><td class="c">'+st+'</td><td class="c"><button data-rm title="Remove this guest">✕</button></td></tr>';
+    }).join('');
+    h+='<tr class="new" data-r="0">'+cells(null)+'<td class="c" colspan="3" style="color:#7a6a6e">Type a name here to add a guest</td></tr></tbody></table></div><p class="say" id="say"></p>';
+  } else if(TAB==='msgs'){
     var M=D.messages||[];
     h+='<div class="card">'+(M.length?M.map(function(m){return '<div class="bubble"><b>'+esc(m.from)+'</b> <small>'+ago(m.at)+'</small><p>'+esc(m.text)+'</p></div>'}).join(''):'<p class="msg">No messages yet.</p>')+'</div>';
   } else if(TAB==='pics'){
@@ -69,6 +87,29 @@ function draw(){
   [].forEach.call(document.querySelectorAll('.tabs button'),function(b){b.onclick=function(){TAB=b.getAttribute('data-t');draw()}});
   [].forEach.call(document.querySelectorAll('.gal button'),function(b){b.onclick=function(){var h=b.getAttribute('data-h');if(h!=null)show(D.hiddenGallery[Number(h)],true);else show(D.gallery[Number(b.getAttribute('data-i'))],false)}});
   $('rf').onclick=load;
+  if(TAB==='list')wireSheet();
+}
+function call(fn,args,ok){
+  $('say').textContent='Saving…';
+  var r=google.script.run.withSuccessHandler(function(x){ok(x)}).withFailureHandler(function(e){$('say').textContent=(e&&e.message)||'That did not work. Please try again.'});
+  r[fn].apply(r,[KEY].concat(args));
+}
+function wireSheet(){
+  var link=function(code){return new URL('../i/?code='+encodeURIComponent(D.code+'-'+code),location.href).href};
+  [].forEach.call(document.querySelectorAll('.sheet tr[data-r]'),function(tr){
+    var row=Number(tr.getAttribute('data-r'));
+    var val=function(f){return tr.querySelector('[data-f="'+f+'"]').value.trim()};
+    [].forEach.call(tr.querySelectorAll('input'),function(i){i.onchange=function(){
+      if(!val('last')){$('say').textContent=row?'A last name is needed.':'Add the last name too, then it saves.';return}
+      call('couple_guest_save',[{row:row,first:val('first'),last:val('last'),seats:val('seats')||1,table:val('table')}],function(){if(row)$('say').textContent='Saved.';else load()});
+    }});
+    var cp=tr.querySelector('[data-cp]'),nw=tr.querySelector('[data-nw]'),rm=tr.querySelector('[data-rm]');
+    if(cp)cp.onclick=function(){var u=link(cp.getAttribute('data-cp'));var done=function(){cp.textContent='Copied ✓';setTimeout(function(){cp.textContent='Copy link'},1500)};if(navigator.clipboard)navigator.clipboard.writeText(u).then(done,function(){prompt('Copy this link',u)});else prompt('Copy this link',u)};
+    if(nw)nw.onclick=function(){if(tr.querySelector('[data-cp]')&&!confirm('Give this guest a new code? Their old code and link will stop working.'))return;call('couple_codes',[row],load)};
+    if(rm)rm.onclick=function(){if(confirm('Remove this guest from the list? Their code stops working and their reply is cleared.'))call('couple_guest_clear',[row],load)};
+  });
+  $('gm').onclick=function(){call('couple_codes',['missing'],function(n){load();})};
+  $('ga').onclick=function(){if(confirm('Replace EVERY guest\'s code? All the old codes and links stop working.'))call('couple_codes',['all'],load)};
 }
 var CUR=null;
 function closeLb(){$('lb').hidden=true;$('bd').innerHTML='';CUR=null}
@@ -87,5 +128,5 @@ function show(g,hidden){
 $('lbx').onclick=closeLb;
 $('ph').onclick=function(){photoAct(CUR&&CUR.hidden?'show':'hide')};
 $('pd').onclick=function(){photoAct('delete')};
-google.script.url.getLocation(function(loc){KEY=(loc.parameter||{}).view||'';load();setInterval(function(){if($('lb').hidden)load()},60000)});
+google.script.url.getLocation(function(loc){KEY=(loc.parameter||{}).view||'';load();setInterval(function(){if($('lb').hidden&&TAB!=='list')load()},60000)});
 </script></body></html>

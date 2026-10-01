@@ -319,10 +319,11 @@
     <p class="sub">Please enter the code printed on your invitation.</p>
     <div class="rule"></div>
     <form id="gate-form" autocomplete="off">
-      <div class="field"><label for="gate-code">Invitation code</label><input id="gate-code" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="24" required></div>
+      <div class="field"><label for="gate-code">Invitation code</label><input id="gate-code" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="40" required></div>
       <div class="actions"><button class="btn" type="submit" id="gate-go">Enter</button></div>
       <p class="msg" id="gate-msg"></p>
     </form>
+    <div class="list" id="gate-events" hidden></div>
   </div>
 </main>
 
@@ -1200,7 +1201,7 @@
     if (!getReg()) {
       // Not registered on this phone yet: RSVP first, then the Next button brings them here.
       showScreen("rsvp");
-      show("s-find");
+      show(PRESET ? "s-respond" : "s-find");
       $("find-msg").className = "msg";
       $("find-msg").textContent = "Please RSVP first, then you can share your photos and videos.";
       return;
@@ -1391,6 +1392,8 @@
   // ---------- invitation code gate ----------
   const qs = new URLSearchParams(location.search);
   let pendingPage = null;
+  // Set when the guest came in with a personal code: the server already knows who they are, so "find my invitation" is skipped.
+  let PRESET = null;
   async function unlockWith(raw) {
     const code = String(raw || "").trim();
     const msg = $("gate-msg"), go = $("gate-go");
@@ -1399,6 +1402,19 @@
     try {
       // Offline preview (not hosted on Apps Script): any code works; ?opening=envelope&scheme=navy&cfg=<encoded JSON> pick the look and content.
       const ev = live ? await run("enterEvent", code) : { opening: qs.get("opening") || "scratch", scheme: qs.get("scheme") || "blush", limit: Number(qs.get("limit")) || 0, cfg: (() => { try { return JSON.parse(qs.get("cfg") || "{}"); } catch (e) { return {}; } })() };
+      // Testing master key: lists every event; tapping one opens it as if its own code had been typed.
+      if (ev.master && ev.events) {
+        const box = $("gate-events"); box.innerHTML = ""; box.hidden = false;
+        ev.events.forEach(x => {
+          const b = document.createElement("button"); b.type = "button"; b.className = "guest";
+          const t = document.createElement("div"); t.textContent = x.name;
+          const sm = document.createElement("small"); sm.textContent = x.code; t.appendChild(sm);
+          const ar = document.createElement("span"); ar.className = "arrow"; ar.textContent = "›";
+          b.append(t, ar); b.addEventListener("click", () => unlockWith(code + ":" + x.code)); box.appendChild(b);
+        });
+        msg.textContent = "Master key: choose an event to open.";
+        return;
+      }
       CODE = code;
       if (ev.cfg) merge(C, ev.cfg);
       if (ev.limit) MAX_UPLOADS = ev.limit;
@@ -1407,6 +1423,9 @@
       if (!REMEMBER) { try { localStorage.removeItem(REG_KEY); } catch (e) {} }
       setScheme(ev.scheme, C.colors); fill(); drawQr(); mountMsg("msg-done"); mountMsg("msg-cam"); left = MAX_UPLOADS;
       msg.textContent = "";
+      PRESET = ev.guest || null;
+      document.querySelectorAll('[data-back="s-find"]').forEach(b => { b.style.display = PRESET ? "none" : ""; });
+      if (PRESET) pick(PRESET, PRESET.last); else show("s-find");
       showScreen("stage");
       const toCam = M.enabled && (pendingPage === "camera" || getReg());
       startOpening(toCam ? "none" : ev.opening);
