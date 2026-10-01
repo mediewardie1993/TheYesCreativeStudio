@@ -762,22 +762,23 @@
     // A filmed clip, scrubbed frame-by-frame by the finger: swipe right slides the ring on, swipe left backs it off —
       // the guest feels like they're the one placing it, rather than just watching a clip play.
     ring(el, done) {
-      el.innerHTML = '<video class="ring-vid" muted playsinline preload="auto"><source src="ring-on.mp4" type="video/mp4"></video>' + hintEl("swipe to slide the ring on");
+      el.innerHTML = '<video class="ring-vid" muted playsinline preload="auto"><source src="ring-on.mp4#t=0.12" type="video/mp4"></video>' + hintEl("swipe to slide the ring on");
       const v = el.querySelector("video");
+      const START = .12; // ~3 frames in — frame 0 can paint blank, this guarantees the hands are visible straight away
       let dur = 4, fin = false, progress = 0, raf = null, seeking = false, pendingP = null;
       // Only ever one seek in flight — assigning currentTime faster than the phone can decode just queues a backlog
       // that visibly lags behind the finger. This always jumps to the latest position once the last seek lands.
       const applySeek = () => {
         if (pendingP === null) return;
         progress = pendingP; pendingP = null; seeking = true;
-        try { v.currentTime = progress * dur; } catch (e) { seeking = false; }
+        try { v.currentTime = START + progress * Math.max(0, dur - START); } catch (e) { seeking = false; }
       };
       v.addEventListener("seeked", () => { seeking = false; applySeek(); });
       const setP = p => { pendingP = Math.max(0, Math.min(1, p)); if (!seeking) applySeek(); };
       // iOS Safari won't paint anything from currentTime alone until the video has actually played once —
       // a silent play-then-pause "primes" the decoder so the first real seek isn't blank.
       const prime = () => {
-        const rewind = () => { v.pause(); try { v.currentTime = 0; } catch (e) {} };
+        const rewind = () => { v.pause(); try { v.currentTime = START; } catch (e) {} };
         const p = v.play();
         if (p && p.then) p.then(rewind).catch(() => {}); else rewind();
       };
@@ -804,9 +805,17 @@
       el.innerHTML = "";
       const photo = document.createElement("img"); photo.className = "card-photo"; photo.alt = ""; photo.src = C.photo || "";
       const v = document.createElement("video"); v.className = "knot-vid"; v.muted = true; v.playsInline = true; v.preload = "auto";
-      const source = document.createElement("source"); source.src = "knot-open.mp4"; source.type = "video/mp4"; v.appendChild(source);
+      const source = document.createElement("source"); source.src = "knot-open.mp4#t=0.12"; source.type = "video/mp4"; v.appendChild(source);
       el.append(v, photo);
       el.insertAdjacentHTML("beforeend", hintEl("tap to untie the ribbon"));
+      // iOS Safari won't paint ANY frame from a <video> that hasn't actually played yet — without this, the
+      // gift box is blank until the guest taps. A silent play-then-rewind forces that first frame in early.
+      const prime = () => {
+        const rewind = () => { v.pause(); try { v.currentTime = 0; } catch (e) {} };
+        const p = v.play();
+        if (p && p.then) p.then(rewind).catch(() => {}); else rewind();
+      };
+      if (v.readyState >= 1) prime(); else v.addEventListener("loadedmetadata", prime, { once: true });
       let fin = false, ended = false;
       const finish = () => {
         if (ended) return; ended = true;
@@ -840,9 +849,17 @@
     const img = document.createElement("img"); img.alt = ""; img.src = C.photo || ""; names.appendChild(img);
     back.appendChild(names);
     const v = document.createElement("video"); v.className = "keyed-vid"; v.muted = true; v.playsInline = true; v.preload = "auto";
-    const source = document.createElement("source"); source.src = src; source.type = "video/mp4"; v.appendChild(source);
+    const source = document.createElement("source"); source.src = src + "#t=0.12"; source.type = "video/mp4"; v.appendChild(source);
     el.append(back, v);
     el.insertAdjacentHTML("beforeend", hintEl(hint));
+    // iOS Safari won't paint ANY frame from a <video> that hasn't actually played yet — without this, the
+    // whole scene is blank until the guest taps. A silent play-then-rewind forces that first frame in early.
+    const prime = () => {
+      const rewind = () => { v.pause(); try { v.currentTime = 0; } catch (e) {} };
+      const p = v.play();
+      if (p && p.then) p.then(rewind).catch(() => {}); else rewind();
+    };
+    if (v.readyState >= 1) prime(); else v.addEventListener("loadedmetadata", prime, { once: true });
     let fin = false, ended = false;
     const finish = () => {
       if (ended) return; ended = true;
