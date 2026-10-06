@@ -108,6 +108,7 @@
     width: 100%; font: 500 19px "Cormorant Garamond", Georgia, serif; color: var(--ink);
     background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px; outline: none;
   }
+  .field label.q { font-size: 16px; letter-spacing: .02em; text-transform: none; color: var(--ink); font-weight: 500; }
   .field textarea { font-size: 17px; min-height: 76px; resize: vertical; }
   .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(var(--rgb),.15); }
   .actions { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
@@ -431,6 +432,8 @@
         <button type="button" data-att="no" data-t="rsvp.declineLabel"></button>
       </div>
       <div class="field" id="seats-field"><label for="seats">Number attending</label><select id="seats"></select></div>
+      <div id="meal-field"></div>
+      <div id="q-field"></div>
       <div class="field"><label for="note">A note for the couple (optional)</label><textarea id="note" maxlength="500"></textarea></div>
       <div class="actions">
         <button class="btn" type="submit" id="send" disabled>Send my RSVP</button>
@@ -1154,7 +1157,7 @@
   // Talks to Code.gs when hosted on Google Apps Script; otherwise uses the demo guest list.
   const api = live ? {
     find: (f, l) => run("findGuests", CODE, f, l),
-    send: (id, l, att, n, note) => run("submitRsvp", CODE, id, l, att, n, note, current.first)
+    send: (id, l, att, n, note, extra) => run("submitRsvp", CODE, id, l, att, n, note, current.first, extra)
   } : {
     find: async (f, l) => (C.demoGuests || [])
       .map((g, i) => ({ id: i, first: g.first, last: g.last, seats: g.seats || 1, table: g.table || "", rsvp: "" }))
@@ -1239,13 +1242,43 @@
     $("seats-field").style.display = g.seats > 1 ? "" : "none";
     document.querySelectorAll("[data-att]").forEach(b => b.classList.remove("on"));
     $("send").disabled = true; $("note").value = ""; $("send-msg").textContent = "";
+    drawQuestions(); drawExtras();
     show("s-respond");
   }
+  // Meal choice: one picker per person attending (only when the event lists meals). The couple's own questions
+  // (a paid planner extra) are asked once per invitation. Both appear only after "accept" is chosen.
+  function drawExtras() {
+    const meals = (C.rsvp && C.rsvp.meals) || [], box = $("meal-field"), n = attending ? Number($("seats").value) || 1 : 0;
+    const keep = [...box.querySelectorAll("select")].map(x => x.value);
+    box.innerHTML = "";
+    if (meals.length) for (let i = 0; i < n; i++) {
+      const f = document.createElement("div"), l = document.createElement("label"), sel = document.createElement("select");
+      f.className = "field"; l.textContent = n > 1 ? `Meal for guest ${i + 1}` : "Your meal";
+      meals.forEach(m => sel.add(new Option(m, m)));
+      if (keep[i] && meals.includes(keep[i])) sel.value = keep[i];
+      f.append(l, sel); box.appendChild(f);
+    }
+    $("q-field").style.display = attending ? "" : "none";
+  }
+  function drawQuestions() {
+    const box = $("q-field"); box.innerHTML = "";
+    (C.questions || []).forEach(q => {
+      const f = document.createElement("div"), l = document.createElement("label");
+      f.className = "field"; l.className = "q"; l.textContent = q.q;
+      let inp;
+      if (q.options && q.options.length) { inp = document.createElement("select"); inp.add(new Option("Choose…", "")); q.options.forEach(o => inp.add(new Option(o, o))); }
+      else { inp = document.createElement("input"); inp.maxLength = 300; }
+      inp.dataset.q = "1";
+      f.append(l, inp); box.appendChild(f);
+    });
+  }
+  $("seats").addEventListener("change", drawExtras);
 
   document.querySelectorAll("[data-att]").forEach(b => b.addEventListener("click", () => {
     attending = b.dataset.att === "yes";
     document.querySelectorAll("[data-att]").forEach(x => x.classList.toggle("on", x === b));
     $("seats-field").style.display = attending && current.seats > 1 ? "" : "none";
+    drawExtras();
     $("send").disabled = false;
   }));
 
@@ -1256,7 +1289,8 @@
     $("send-msg").className = "msg"; $("send-msg").textContent = "Sending…";
     try {
       const count = attending ? Number($("seats").value) : 0;
-      const res = await api.send(current.id, current.typedLast, attending, count, $("note").value.trim());
+      const extra = { meals: [...$("meal-field").querySelectorAll("select")].map(x => x.value), answers: [...$("q-field").querySelectorAll("[data-q]")].map(x => x.value.trim()) };
+      const res = await api.send(current.id, current.typedLast, attending, count, $("note").value.trim(), extra);
       $("thanks").textContent = attending ? C.rsvp.thanksYes.replace("{first}", current.first) : C.rsvp.thanksNo.replace("{first}", current.first);
       const L = C.location || {};
       const showVenue = attending && L.enabled;
